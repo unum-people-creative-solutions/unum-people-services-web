@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import api, { LeadService, TenantService } from "@/services/api";
 import { useAuthStore } from "@/store/authStore";
-import { Plus, X, LogOut, Settings, DollarSign, AlertCircle, Calendar, Eye, EyeOff, Users, Edit2, Mail, Phone, User, Building, Search, TrendingUp } from "lucide-react";
+import { Plus, X, LogOut, Settings, DollarSign, AlertCircle, Calendar, Eye, EyeOff, Users, Edit2, Mail, Phone, User, Building, Search, TrendingUp, RefreshCw } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -303,69 +303,92 @@ function KanbanContent() {
               <p className="text-sm font-bold">{session?.name}</p>
               <p className="text-[10px] text-gray-500 uppercase font-bold">{session?.role}</p>
             </div>
-            <button onClick={handleLogout} className="text-gray-400 hover:text-red-500"><LogOut size={20} /></button>
+            {session?.role === "GlobalAdmin" && (
+              <button 
+                onClick={() => router.push("/tenants")}
+                className="bg-primary-50 text-primary-600 hover:bg-primary-100 p-2 rounded-lg transition-all border border-primary-100 shadow-sm flex items-center justify-center"
+                title="Painel Administrativo"
+              >
+                <Settings size={18} />
+              </button>
+            )}
+            <button onClick={handleLogout} className="text-gray-400 hover:text-red-500" title="Sair"><LogOut size={20} /></button>
           </div>
         </div>
       </header>
 
-      <main className="flex-1 p-6 min-h-0">
-        {loading ? <div className="flex items-center justify-center h-full text-gray-400">Sincronizando Leads...</div> : (
-          <DragDropContext onDragEnd={onDragEnd}>
-            <div className="flex gap-4 h-full overflow-x-auto pb-4 custom-scrollbar">
-              {COLUMNS.map((col) => (
-                <div key={col.id} className="w-72 flex flex-col bg-gray-200/50 rounded-lg p-3 max-h-full flex-shrink-0">
-                  <h2 className="font-bold text-gray-700 mb-4 px-1 flex justify-between items-center uppercase text-[10px] tracking-widest shrink-0">
-                    {col.title} <span className="bg-gray-300 text-[10px] py-0.5 px-2 rounded-full">{boardData[col.id]?.length || 0}</span>
-                  </h2>
-                  <Droppable droppableId={col.id}>
-                    {(provided) => (
-                      <div {...provided.droppableProps} ref={provided.innerRef} className="flex-1 overflow-y-auto custom-scrollbar pr-1">
-                        {boardData[col.id]?.map((lead: any, index: number) => {
-                          const monthSales = lead.sales?.filter((s: any) => {
-                            const d = new Date(s.data);
-                            return d.getMonth() === selectedMonth && d.getFullYear() === selectedYear;
-                          }) || [];
-                          const monthTotal = monthSales.reduce((sum: number, s: any) => sum + s.valor, 0);
-                          const totalLtv = lead.sales?.reduce((sum: number, s: any) => sum + s.valor, 0) || 0;
-                          
-                          return (
-                            <Draggable key={lead.id} draggableId={lead.id} index={index}>
-                              {(provided) => (
-                                <div ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps} className="bg-white p-4 rounded shadow-sm mb-3 border-l-4 border-primary-500 hover:shadow-md group relative transition-all">
-                                  <button onClick={() => handleEditClick(lead)} className="absolute top-2 right-2 p-1 text-gray-400 hover:text-primary-600 opacity-0 group-hover:opacity-100"><Edit2 size={14} /></button>
-                                  <div className="font-bold text-gray-900 group-hover:text-primary-600 transition-colors">{lead.nome}</div>
-                                  <div className="text-xs text-gray-500 mt-1">{lead.telefone}</div>
-                                  {monthTotal > 0 && (
-                                    <div className="text-xs font-black text-green-600 mt-2">
-                                      {formatCurrency(monthTotal)}
-                                    </div>
-                                  )}
-
-                                  {totalLtv > monthTotal && (
-                                    <div className="text-[9px] text-primary-500 font-bold uppercase mt-1">
-                                      LTV: {formatCurrency(totalLtv)}
-                                    </div>
-                                  )}
-                                </div>
-                              )}
-                            </Draggable>
-                          );
-                        })}
-                        {provided.placeholder}
-                      </div>
-                    )}
-                  </Droppable>
-                </div>
-              ))}
+      <main className="flex-1 p-6 min-h-0 relative">
+        {/* Overlay de Loading Moderno (Não desmonta a tela) */}
+        {loading && (
+          <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/30 backdrop-blur-[1.5px] transition-all duration-300 text-gray-900">
+            <div className="bg-white p-6 rounded-2xl shadow-2xl border border-gray-100 flex flex-col items-center gap-3 animate-in fade-in zoom-in duration-300">
+              <div className="relative flex items-center justify-center">
+                <RefreshCw className="animate-spin text-primary-600" size={42} />
+                <div className="absolute inset-0 animate-ping rounded-full border-4 border-primary-100 opacity-20"></div>
+              </div>
+              <div className="text-center">
+                <p className="text-sm font-black text-gray-800 uppercase tracking-tighter">Sincronizando</p>
+                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Aguarde um instante</p>
+              </div>
             </div>
-          </DragDropContext>
+          </div>
         )}
+
+        <DragDropContext onDragEnd={onDragEnd}>
+          <div className="flex gap-4 h-full overflow-x-auto pb-4 custom-scrollbar">
+            {COLUMNS.map((col) => (
+              <div key={col.id} className="w-72 flex flex-col bg-gray-200/50 rounded-lg p-3 max-h-full flex-shrink-0">
+                <h2 className="font-bold text-gray-700 mb-4 px-1 flex justify-between items-center uppercase text-[10px] tracking-widest shrink-0">
+                  {col.title} <span className="bg-gray-300 text-[10px] py-0.5 px-2 rounded-full">{boardData[col.id]?.length || 0}</span>
+                </h2>
+                <Droppable droppableId={col.id}>
+                  {(provided) => (
+                    <div {...provided.droppableProps} ref={provided.innerRef} className="flex-1 overflow-y-auto custom-scrollbar pr-1">
+                      {boardData[col.id]?.map((lead: any, index: number) => {
+                        const monthSales = lead.sales?.filter((s: any) => {
+                          const d = new Date(s.data);
+                          return d.getMonth() === selectedMonth && d.getFullYear() === selectedYear;
+                        }) || [];
+                        const monthTotal = monthSales.reduce((sum: number, s: any) => sum + s.valor, 0);
+                        const totalLtv = lead.sales?.reduce((sum: number, s: any) => sum + s.valor, 0) || 0;
+                        
+                        return (
+                          <Draggable key={lead.id} draggableId={lead.id} index={index}>
+                            {(provided) => (
+                              <div ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps} className="bg-white p-4 rounded shadow-sm mb-3 border-l-4 border-primary-500 hover:shadow-md group relative transition-all">
+                                <button onClick={() => handleEditClick(lead)} className="absolute top-2 right-2 p-1 text-gray-400 hover:text-primary-600 opacity-0 group-hover:opacity-100"><Edit2 size={14} /></button>
+                                <div className="font-bold text-gray-900 group-hover:text-primary-600 transition-colors">{lead.nome}</div>
+                                <div className="text-xs text-gray-500 mt-1">{lead.telefone}</div>
+                                {monthTotal > 0 && (
+                                  <div className="text-xs font-black text-green-600 mt-2">
+                                    {formatCurrency(monthTotal)}
+                                  </div>
+                                )}
+
+                                {totalLtv > monthTotal && (
+                                  <div className="text-[9px] text-primary-500 font-bold uppercase mt-1">
+                                    LTV: {formatCurrency(totalLtv)}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </Draggable>
+                        );
+                      })}
+                      {provided.placeholder}
+                    </div>
+                  )}
+                </Droppable>
+              </div>
+            ))}
+          </div>
+        </DragDropContext>
       </main>
 
       {/* Modal Novo Lead */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md shadow-2xl">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md shadow-2xl text-gray-900">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-lg font-bold flex items-center gap-2 text-primary-700"><Plus size={20}/> Novo Lead Manual</h2>
               <button onClick={() => setIsModalOpen(false)}><X size={20} /></button>
@@ -400,7 +423,7 @@ function KanbanContent() {
 
       {/* Modal Nova Venda (Busca de Clientes) */}
       {isNewSaleModalOpen && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 backdrop-blur-sm">
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 backdrop-blur-sm text-gray-900">
           <div className="bg-white rounded-lg p-6 w-full max-w-md shadow-2xl">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-lg font-bold flex items-center gap-2 text-green-700"><TrendingUp size={20}/> Registrar Nova Venda</h2>
@@ -446,7 +469,7 @@ function KanbanContent() {
 
       {/* Modal de Edição (Lista de Vendas) */}
       {isEditModalOpen && editingLead && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 text-gray-900">
           <div className="bg-white rounded-lg p-6 w-full max-w-md shadow-xl max-h-[90vh] overflow-y-auto custom-scrollbar">
             <div className="flex justify-between items-center mb-6 border-b pb-4">
               <h2 className="text-lg font-bold flex items-center gap-2"><Edit2 size={18} className="text-primary-600" /> Editar Lead</h2>
@@ -498,7 +521,7 @@ function KanbanContent() {
 
       {/* Modais de Movimentação (Simplificados) */}
       {isSaleModalOpen && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50 text-gray-900">
           <div className="bg-white rounded-lg p-6 w-full max-w-sm border-t-4 border-green-500 shadow-2xl">
             <h2 className="text-lg font-bold text-green-700 mb-4 flex items-center gap-2"><DollarSign size={20} /> Venda Concluída!</h2>
             <form onSubmit={confirmSale} className="space-y-4">
@@ -514,7 +537,7 @@ function KanbanContent() {
       )}
 
       {isConfirmModalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 text-gray-900">
           <div className="bg-white rounded-lg p-6 w-full max-w-sm shadow-xl text-gray-900 border-t-4 border-orange-500">
             <h2 className="text-lg font-bold text-orange-600 mb-4 flex items-center gap-2"><AlertCircle size={20} /> Mover para trás?</h2>
             <p className="text-sm text-gray-600 mb-6 font-medium">Deseja realmente retroceder este lead para uma etapa anterior do funil?</p>
