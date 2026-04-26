@@ -267,8 +267,8 @@ function KanbanContent() {
     <div className="h-screen flex flex-col bg-gray-50 text-gray-900 font-sans overflow-hidden">
       <header className="bg-white border-b p-4 flex justify-between items-center shadow-sm z-10">
         <div className="flex items-center gap-6">
-          <Image src="/images/logo_simbolo.png" alt="Unum People" width={40} height={40} className="object-contain border-r pr-6" priority />
-          <div className="flex items-center gap-3">
+          <Image src="/images/logo_simbolo.png" alt="Unum People" width={40} height={40} className="object-contain" priority />
+          <div className="flex items-center gap-3 border-l pl-6">
             <div className="flex items-center bg-primary-50 rounded-lg p-1 border border-primary-100">
               <Building size={14} className="text-primary-400 ml-2" />
               <select value={selectedTenantId} onChange={(e) => setSelectedTenantId(e.target.value)} className="bg-transparent border-none text-xs font-bold text-primary-800 p-2 cursor-pointer max-w-[200px]">
@@ -335,13 +335,12 @@ function KanbanContent() {
                                   <button onClick={() => handleEditClick(lead)} className="absolute top-2 right-2 p-1 text-gray-400 hover:text-primary-600 opacity-0 group-hover:opacity-100"><Edit2 size={14} /></button>
                                   <div className="font-bold text-gray-900 group-hover:text-primary-600 transition-colors">{lead.nome}</div>
                                   <div className="text-xs text-gray-500 mt-1">{lead.telefone}</div>
-                                  
                                   {monthTotal > 0 && (
                                     <div className="text-xs font-black text-green-600 mt-2">
                                       {formatCurrency(monthTotal)}
                                     </div>
                                   )}
-                                  
+
                                   {totalLtv > monthTotal && (
                                     <div className="text-[9px] text-primary-500 font-bold uppercase mt-1">
                                       LTV: {formatCurrency(totalLtv)}
