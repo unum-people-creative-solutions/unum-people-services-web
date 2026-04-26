@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
-import "./globals.css";
+import "@/app/globals.css";
 import AuthGuard from "@/components/AuthGuard";
 
 export const metadata: Metadata = {
-  title: "Unum People | CRM",
+  title: "CRM | Unum People",
   description: "Gestão inteligente de leads e tráfego",
 };
 

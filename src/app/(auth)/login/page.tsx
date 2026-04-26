@@ -7,6 +7,7 @@ import { useAuthStore } from "@/store/authStore";
 import { useRouter } from "next/navigation";
 import { jwtDecode } from "jwt-decode";
 import Link from "next/link";
+import Image from "next/image";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -23,16 +24,21 @@ export default function LoginPage() {
   const onLoginSuccess = (result: any) => {
     const idToken = result.getIdToken().getJwtToken();
     const decoded: any = jwtDecode(idToken);
+    const role = decoded["cognito:groups"]?.[0] || "USER";
 
     setSession({
       email: decoded.email,
       name: decoded.name || decoded.email,
       tenantId: decoded["custom:tenant_id"],
-      role: decoded["cognito:groups"]?.[0] || "USER",
+      role: role,
       token: idToken,
     });
 
-    router.push("/kanban");
+    if (role === "GlobalAdmin") {
+      router.push("/tenants");
+    } else {
+      router.push("/kanban");
+    }
   };
 
   const handleLogin = (e: React.FormEvent) => {
@@ -40,13 +46,15 @@ export default function LoginPage() {
     setLoading(true);
     setError("");
 
+    const normalizedEmail = email.toLowerCase().trim();
+
     const authDetails = new AuthenticationDetails({
-      Username: email,
+      Username: normalizedEmail,
       Password: password,
     });
 
     const cognitoUser = new CognitoUser({
-      Username: email,
+      Username: normalizedEmail,
       Pool: userPool,
     });
 
@@ -57,7 +65,6 @@ export default function LoginPage() {
         setLoading(false);
       },
       newPasswordRequired: (userAttributes, requiredAttributes) => {
-        // Desafio de primeiro acesso detectado!
         setUserObj(cognitoUser);
         setIsChangingPassword(true);
         setLoading(false);
@@ -82,12 +89,15 @@ export default function LoginPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
         <div className="bg-white p-8 rounded-lg shadow-xl w-full max-w-md border-t-4 border-primary-600">
-          <h1 className="text-2xl font-bold mb-2 text-gray-800 text-center">Bem-vindo(a)!</h1>
+          <div className="flex justify-center mb-6">
+            <Image src="/images/logo_texto.png" alt="Unum People" width={200} height={60} className="object-contain" priority />
+          </div>
+          <h1 className="text-xl font-bold mb-2 text-gray-800 text-center">Bem-vindo(a)!</h1>
           <p className="text-gray-500 text-sm text-center mb-8">Este é seu primeiro acesso. Por favor, defina uma senha definitiva.</p>
           <form onSubmit={handleSetNewPassword} className="space-y-4">
             {error && <div className="p-3 bg-red-50 text-red-600 text-xs rounded-md text-center">{error}</div>}
             <div>
-              <label className="block text-gray-700 text-sm font-bold mb-2">Nova Senha</label>
+              <label className="block text-gray-700 text-sm font-bold mb-2 font-bold">Nova Senha</label>
               <input
                 type="password"
                 value={newPassword}
@@ -113,24 +123,33 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
       <div className="bg-white p-8 rounded-lg shadow-xl w-full max-w-md border-t-4 border-primary-600">
-        <h1 className="text-3xl font-black mb-8 text-center text-primary-600 tracking-tighter italic">UNUM PEOPLE</h1>
+        <div className="flex justify-center mb-10">
+          <Image 
+            src="/images/logo_texto.png" 
+            alt="Unum People" 
+            width={240} 
+            height={80} 
+            className="object-contain drop-shadow-sm"
+            priority 
+          />
+        </div>
         <form onSubmit={handleLogin} className="space-y-5">
           {error && <div className="p-3 bg-red-50 text-red-600 text-xs rounded-md text-center">{error}</div>}
           <div>
-            <label className="block text-gray-700 text-sm font-bold mb-2">Acesso</label>
+            <label className="block text-gray-700 text-sm font-bold mb-2 font-bold">E-mail ou Usuário</label>
             <input
               type="text"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full p-3 border rounded-md focus:ring-2 focus:ring-primary-500 outline-none"
-              placeholder="Usuário ou e-mail"
+              placeholder="Digite seu e-mail"
               required
             />
           </div>
           <div>
             <div className="flex justify-between items-center mb-2">
               <label className="text-gray-700 text-sm font-bold">Senha</label>
-              <Link href="/forgot-password" className="text-xs text-primary-600 hover:underline font-medium">Esqueci a senha</Link>
+              <Link href="/forgot-password" size="sm" className="text-xs text-primary-600 hover:underline">Esqueci a senha</Link>
             </div>
             <input
               type="password"
