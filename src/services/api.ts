@@ -27,6 +27,13 @@ api.interceptors.response.use(
   }
 );
 
+export interface LeadData {
+  nome: string;
+  email?: string;
+  telefone: string;
+  origem: string;
+}
+
 export const LeadService = {
   list: async (status: string, startDate?: string, endDate?: string, tenantId?: string) => {
     let url = `/leads?status=${status}`;
@@ -39,7 +46,7 @@ export const LeadService = {
     const response = await api.get(url);
     return response.data;
   },
-  create: async (data: { nome: string; email?: string; telefone: string; origem?: string }, tenantId?: string) => {
+  create: async (data: LeadData, tenantId?: string) => {
     let url = `/leads`;
     if (tenantId) {
       url += `?tenant_id=${tenantId}`;
@@ -55,7 +62,7 @@ export const LeadService = {
     const response = await api.patch(url, { status, valor_venda: valor });
     return response.data;
   },
-  update: async (id: string, data: { nome: string; email?: string; telefone: string; sales?: any[] }, tenantId?: string) => {
+  update: async (id: string, data: { nome: string; email?: string; telefone: string; sales?: any[]; status?: string }, tenantId?: string) => {
     let url = `/leads/${id}`;
     if (tenantId) {
       url += `?tenant_id=${tenantId}`;

@@ -3,7 +3,7 @@
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
-import api, { LeadService, TenantService } from "@/services/api";
+import api, { LeadService, TenantService, LeadData } from "@/services/api";
 import { useAuthStore } from "@/store/authStore";
 import { Plus, X, LogOut, Settings, DollarSign, AlertCircle, Calendar, Eye, EyeOff, Users, Edit2, Mail, Phone, User, Building, Search, TrendingUp, RefreshCw } from "lucide-react";
 import { useRouter } from "next/navigation";
