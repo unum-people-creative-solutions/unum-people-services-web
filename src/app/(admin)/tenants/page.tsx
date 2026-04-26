@@ -3,9 +3,43 @@
 import { useEffect, useState } from "react";
 import { TenantService } from "@/services/api";
 import { useAuthStore } from "@/store/authStore";
-import { Plus, X, Building, Mail, Briefcase, Hash, LayoutGrid, Search, UserPlus, User } from "lucide-react";
+import { Plus, X, Building, Mail, Briefcase, Hash, LayoutGrid, Search, UserPlus, User, Eye, EyeOff, Copy, Check } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+
+// Sub-componente para exibição segura da API Key
+function ApiKeyCell({ apiKey }: { apiKey: string }) {
+  const [visible, setVisible] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(apiKey);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="flex items-center gap-2">
+      <code className="text-[10px] font-mono bg-gray-100 px-2 py-1 rounded border min-w-[120px] text-gray-600">
+        {visible ? apiKey : "up_••••••••••••••••••••"}
+      </code>
+      <button 
+        onClick={() => setVisible(!visible)} 
+        className="text-gray-400 hover:text-primary-600 transition-colors"
+        title={visible ? "Ocultar Chave" : "Revelar Chave"}
+      >
+        {visible ? <EyeOff size={14} /> : <Eye size={14} />}
+      </button>
+      <button 
+        onClick={handleCopy} 
+        className="text-gray-400 hover:text-green-600 transition-colors"
+        title="Copiar para área de transferência"
+      >
+        {copied ? <Check size={14} className="text-green-600" /> : <Copy size={14} />}
+      </button>
+    </div>
+  );
+}
 
 export default function TenantsPage() {
   const [tenants, setTenants] = useState<any[]>([]);
@@ -132,7 +166,7 @@ export default function TenantsPage() {
         </div>
       </header>
 
-      <main className="p-8 max-w-6xl mx-auto w-full">
+      <main className="p-8 max-w-7xl mx-auto w-full">
         {/* Filtro de Busca */}
         <div className="mb-6 flex items-center bg-white p-4 rounded-lg shadow-sm border border-gray-200">
           <Search className="text-gray-400 mr-3" size={20} />
@@ -156,7 +190,7 @@ export default function TenantsPage() {
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Negócio</th>
                 <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Contato / Ads ID</th>
-                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Auth</th>
+                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">API Integration</th>
                 <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Nicho</th>
                 <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
                 <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Ações</th>
@@ -175,9 +209,7 @@ export default function TenantsPage() {
                       <div className="text-xs font-bold text-primary-600">{t.google_ads_customer_id || "Não configurado"}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${t.use_mcc_auth ? 'bg-purple-100 text-purple-800' : 'bg-orange-100 text-orange-800'}`}>
-                        {t.use_mcc_auth ? 'MCC GESTOR' : 'OAuth DIRETO'}
-                      </span>
+                      <ApiKeyCell apiKey={t.api_key} />
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="bg-blue-100 text-blue-800 text-[10px] px-2 py-0.5 rounded-full font-bold">{t.nicho}</span>

@@ -293,7 +293,7 @@ function KanbanContent() {
         </div>
         <div className="flex items-center gap-3">
           <a 
-            href="https://unum-people-creative-solutions.github.io/unum-people-services-docs/" 
+            href="https://unum-people-creative-solutions.github.io/unum-people-services-docs/crm/" 
             target="_blank" 
             rel="noopener noreferrer"
             className="flex items-center gap-2 text-gray-500 hover:text-primary-600 transition-all font-bold text-xs px-2"
