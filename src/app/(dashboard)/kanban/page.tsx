@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import api, { LeadService, TenantService, LeadData } from "@/services/api";
 import { useAuthStore } from "@/store/authStore";
-import { Plus, X, LogOut, Settings, DollarSign, AlertCircle, Calendar, Eye, EyeOff, Users, Edit2, Mail, Phone, User, Building, Search, TrendingUp, RefreshCw } from "lucide-react";
+import { Plus, X, LogOut, Settings, DollarSign, AlertCircle, Calendar, Eye, EyeOff, Users, Edit2, Mail, Phone, User, Building, Search, TrendingUp, RefreshCw, HelpCircle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -52,7 +52,7 @@ function KanbanContent() {
   
   const [showRevenue, setShowRevenue] = useState(false);
   
-  const [newLead, setNewLead] = useState({ nome: "", email: "", telefone: "", origem: "Indicação" });
+  const [newLead, setNewLead] = useState<LeadData>({ nome: "", email: "", telefone: "", origem: "Indicação" });
   const [editingLead, setEditingLead] = useState<any>(null);
   const [saleValueMasked, setSaleValueMasked] = useState("");
   const [pendingMove, setPendingMove] = useState<any>(null);
@@ -292,6 +292,14 @@ function KanbanContent() {
           </div>
         </div>
         <div className="flex items-center gap-3">
+          <a 
+            href="https://unum-people-creative-solutions.github.io/unum-people-services-docs/" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 text-gray-500 hover:text-primary-600 transition-all font-bold text-xs px-2"
+          >
+            <HelpCircle size={18} /> Ajuda
+          </a>
           <button onClick={() => setIsNewSaleModalOpen(true)} className="bg-green-600 text-white px-3 py-2 rounded-md flex items-center gap-2 hover:bg-green-700 text-xs font-bold transition-all shadow-sm">
             <TrendingUp size={16} /> Nova Venda
           </button>
