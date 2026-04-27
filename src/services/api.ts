@@ -62,7 +62,7 @@ export const LeadService = {
     const response = await api.patch(url, { status, valor_venda: valor });
     return response.data;
   },
-  update: async (id: string, data: { nome: string; email?: string; telefone: string; sales?: any[]; status?: string }, tenantId?: string) => {
+  update: async (id: string, data: { nome: string; email?: string; telefone: string; origem?: string; sales?: any[]; status?: string }, tenantId?: string) => {
     let url = `/leads/${id}`;
     if (tenantId) {
       url += `?tenant_id=${tenantId}`;

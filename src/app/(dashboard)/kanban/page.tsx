@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import api, { LeadService, TenantService, LeadData } from "@/services/api";
 import { useAuthStore } from "@/store/authStore";
-import { Plus, X, LogOut, Settings, DollarSign, AlertCircle, Calendar, Eye, EyeOff, Users, Edit2, Mail, Phone, User, Building, Search, TrendingUp, RefreshCw, HelpCircle } from "lucide-react";
+import { Plus, X, LogOut, Settings, DollarSign, AlertCircle, Calendar, Eye, EyeOff, Users, Edit2, Mail, Phone, User, Building, Search, TrendingUp, RefreshCw, HelpCircle, Tag } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -156,6 +156,7 @@ function KanbanContent() {
         nome: editingLead.nome,
         email: editingLead.email,
         telefone: editingLead.telefone,
+        origem: editingLead.origem,
         sales: editingLead.sales,
         status: editingLead.status
       }, selectedTenantId);
@@ -378,6 +379,12 @@ function KanbanContent() {
                                     LTV: {formatCurrency(totalLtv)}
                                   </div>
                                 )}
+
+                                {lead.origem && (
+                                  <div className="text-[10px] text-gray-400 mt-2 italic flex items-center gap-1">
+                                    <Tag size={10} /> {lead.origem}
+                                  </div>
+                                )}
                               </div>
                             )}
                           </Draggable>
@@ -420,8 +427,8 @@ function KanbanContent() {
                   <option value="Indicação">Indicação</option>
                   <option value="WhatsApp">WhatsApp</option>
                   <option value="Instagram">Instagram</option>
-                  <option value="Outro">Outro</option>
-                </select>
+                  <option value="Facebook">Facebook</option>
+                  <option value="Outro">Outro</option>                </select>
               </div>
               <button type="submit" className="w-full bg-primary-600 text-white p-3 rounded-md font-bold hover:bg-primary-700 shadow-lg transition-all mt-4">Criar Lead</button>
             </form>
@@ -491,6 +498,28 @@ function KanbanContent() {
                   <input type="email" value={editingLead.email || ""} onChange={(e) => setEditingLead({...editingLead, email: e.target.value})} className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-primary-500" /></div>
                 <div><label className="text-xs font-bold text-gray-500 uppercase">WhatsApp</label>
                   <input type="text" value={editingLead.telefone} onChange={(e) => setEditingLead({...editingLead, telefone: e.target.value})} className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-primary-500" /></div>
+                <div>
+                  <label className="text-xs font-bold text-gray-500 uppercase">Origem</label>
+                  {editingLead.origem?.includes("UTM") || editingLead.origem?.includes("Direct") ? (
+                    <div className="flex flex-col gap-1">
+                      <div className="w-full border p-2 rounded-md bg-gray-50 text-gray-500 italic flex items-center gap-2">
+                        <Tag size={14} /> {editingLead.origem}
+                      </div>
+                      <span className="text-[10px] text-amber-600 font-medium">Origens automáticas do site não podem ser alteradas.</span>
+                    </div>
+                  ) : (
+                    <select 
+                      value={editingLead.origem || "Indicação"} 
+                      onChange={(e) => setEditingLead({...editingLead, origem: e.target.value})} 
+                      className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-primary-500 bg-white"
+                    >
+                      <option value="Indicação">Indicação</option>
+                      <option value="WhatsApp">WhatsApp</option>
+                      <option value="Instagram">Instagram</option>
+                      <option value="Facebook">Facebook</option>
+                      <option value="Outro">Outro</option>                    </select>
+                  )}
+                </div>
               </div>
               
               <div className="mt-8 border-t pt-4">

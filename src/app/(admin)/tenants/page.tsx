@@ -54,7 +54,7 @@ export default function TenantsPage() {
     nome_negocio: "", 
     nome_admin: "",
     email_contato: "", 
-    nicho: "PSICOLOGIA",
+    nicho: "MEDICINA",
     google_ads_customer_id: "",
     use_mcc_auth: true 
   });
@@ -100,7 +100,7 @@ export default function TenantsPage() {
         nome_negocio: "", 
         nome_admin: "", 
         email_contato: "", 
-        nicho: "PSICOLOGIA", 
+        nicho: "MEDICINA", 
         google_ads_customer_id: "", 
         use_mcc_auth: true 
       });
@@ -275,9 +275,18 @@ export default function TenantsPage() {
                   <select value={newTenant.nicho}
                     onChange={(e) => setNewTenant({...newTenant, nicho: e.target.value})}
                     className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-primary-500 bg-white font-bold">
+                    <option value="MEDICINA">Medicina / Clínicas</option>
+                    <option value="ODONTOLOGIA">Odontologia</option>
+                    <option value="ESTETICA">Estética / Saúde</option>
                     <option value="PSICOLOGIA">Psicologia</option>
                     <option value="DIREITO">Direito / Advogados</option>
-                    <option value="ESTETICA">Estética / Saúde</option>
+                    <option value="IMOBILIARIO">Imobiliário / Corretores</option>
+                    <option value="FITNESS">Fitness / Academias</option>
+                    <option value="EDUCACAO">Educação / Cursos</option>
+                    <option value="ENERGIA_SOLAR">Energia Solar</option>
+                    <option value="SERVICOS_PROFISSIONAIS">Serviços Profissionais</option>
+                    <option value="VAREJO">Varejo / Comércio Local</option>
+                    <option value="OUTRO">Outro</option>
                   </select>
                 </div>
                 <div>
