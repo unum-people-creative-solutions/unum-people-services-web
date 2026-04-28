@@ -301,6 +301,14 @@ function KanbanContent() {
           >
             <HelpCircle size={18} /> Ajuda
           </a>
+          <button 
+            onClick={() => loadLeads()} 
+            disabled={loading}
+            className="p-2 text-gray-500 hover:text-primary-600 hover:bg-gray-100 rounded-md transition-all disabled:opacity-50"
+            title="Atualizar Leads"
+          >
+            <RefreshCw size={18} className={loading ? "animate-spin" : ""} />
+          </button>
           <button onClick={() => setIsNewSaleModalOpen(true)} className="bg-green-600 text-white px-3 py-2 rounded-md flex items-center gap-2 hover:bg-green-700 text-xs font-bold transition-all shadow-sm">
             <TrendingUp size={16} /> Nova Venda
           </button>
