@@ -14,6 +14,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [userObj, setUserObj] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -74,10 +75,21 @@ export default function LoginPage() {
 
   const handleSetNewPassword = (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!acceptedTerms) {
+      setError("Você deve aceitar os Termos de Uso e Política de Privacidade para continuar.");
+      return;
+    }
+
     setLoading(true);
     
     userObj.completeNewPasswordChallenge(newPassword, {}, {
-      onSuccess: onLoginSuccess,
+      onSuccess: (result: any) => {
+        // Salva o aceite no localStorage para evitar que o modal apareça imediatamente após o login
+        const email = userObj.getUsername();
+        localStorage.setItem(`terms-accepted-${email}`, new Date().toISOString());
+        onLoginSuccess(result);
+      },
       onFailure: (err: any) => {
         setError(err.message || "Erro ao definir nova senha");
         setLoading(false);
@@ -97,7 +109,7 @@ export default function LoginPage() {
           <form onSubmit={handleSetNewPassword} className="space-y-4">
             {error && <div className="p-3 bg-red-50 text-red-600 text-xs rounded-md text-center">{error}</div>}
             <div>
-              <label className="block text-gray-700 text-sm font-bold mb-2 font-bold">Nova Senha</label>
+              <label className="block text-gray-700 text-sm font-bold mb-2">Nova Senha</label>
               <input
                 type="password"
                 value={newPassword}
@@ -107,10 +119,24 @@ export default function LoginPage() {
                 required
               />
             </div>
+
+            <div className="flex items-start space-x-2 py-2">
+              <input
+                type="checkbox"
+                id="terms"
+                checked={acceptedTerms}
+                onChange={(e) => setAcceptedTerms(e.target.checked)}
+                className="mt-1 h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded cursor-pointer"
+              />
+              <label htmlFor="terms" className="text-xs text-gray-600 cursor-pointer leading-tight">
+                Eu li e concordo com os <Link href="/terms" target="_blank" className="text-primary-600 hover:underline">Termos de Uso</Link> e a <Link href="/privacy" target="_blank" className="text-primary-600 hover:underline">Política de Privacidade</Link>.
+              </label>
+            </div>
+
             <button
               type="submit"
-              disabled={loading}
-              className="w-full bg-primary-600 text-white p-3 rounded-md font-bold hover:bg-primary-700 transition-colors disabled:bg-gray-400"
+              disabled={loading || !acceptedTerms}
+              className="w-full bg-primary-600 text-white p-3 rounded-md font-bold hover:bg-primary-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
             >
               {loading ? "Salvando..." : "Confirmar e Entrar"}
             </button>
@@ -136,7 +162,7 @@ export default function LoginPage() {
         <form onSubmit={handleLogin} className="space-y-5">
           {error && <div className="p-3 bg-red-50 text-red-600 text-xs rounded-md text-center">{error}</div>}
           <div>
-            <label className="block text-gray-700 text-sm font-bold mb-2 font-bold">E-mail ou Usuário</label>
+            <label className="block text-gray-700 text-sm font-bold mb-2">E-mail ou Usuário</label>
             <input
               type="text"
               value={email}
@@ -167,6 +193,12 @@ export default function LoginPage() {
             {loading ? "Entrando..." : "Entrar no Painel"}
           </button>
         </form>
+
+        <div className="mt-8 pt-6 border-t border-gray-100 flex justify-center space-x-4 text-[10px] text-gray-400 uppercase tracking-widest font-semibold">
+          <Link href="/terms" className="hover:text-primary-600 transition-colors">Termos</Link>
+          <span>•</span>
+          <Link href="/privacy" className="hover:text-primary-600 transition-colors">Privacidade</Link>
+        </div>
       </div>
     </div>
   );

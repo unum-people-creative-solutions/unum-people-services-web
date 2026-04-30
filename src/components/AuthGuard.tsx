@@ -4,12 +4,14 @@ import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
 import { jwtDecode } from "jwt-decode";
+import TermsModal from "./TermsModal";
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, session, logout } = useAuthStore();
   const router = useRouter();
   const pathname = usePathname();
   const [isHydrated, setIsHydrated] = useState(false);
+  const [mustAcceptTerms, setMustAcceptTerms] = useState(false);
 
   useEffect(() => {
     const unsub = useAuthStore.persist.onFinishHydration(() => {
@@ -24,27 +26,45 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    const publicPaths = ["/login", "/forgot-password"];
+    const publicPaths = ["/login", "/forgot-password", "/privacy", "/terms"];
     
-    if (isHydrated && !publicPaths.includes(pathname)) {
-      if (!isAuthenticated || !session?.token) {
-        router.push("/login");
-        return;
-      }
+    if (isHydrated) {
+      // 1. Verificar se o caminho é público
+      if (!publicPaths.includes(pathname)) {
+        if (!isAuthenticated || !session?.token) {
+          router.push("/login");
+          return;
+        }
 
-      // Validação de expiração do Token
-      try {
-        const decoded: any = jwtDecode(session.token);
-        const currentTime = Date.now() / 1000;
-        
-        if (decoded.exp < currentTime) {
-          console.warn("Sessão expirada. Redirecionando...");
+        // 2. Validação de expiração do Token
+        try {
+          const decoded: any = jwtDecode(session.token);
+          const currentTime = Date.now() / 1000;
+          
+          if (decoded.exp < currentTime) {
+            console.warn("Sessão expirada. Redirecionando...");
+            logout();
+            router.push("/login");
+            return;
+          }
+        } catch (err) {
           logout();
           router.push("/login");
+          return;
         }
-      } catch (err) {
-        logout();
-        router.push("/login");
+
+        // 3. Verificação de Consentimento LGPD (localStorage)
+        if (session?.email) {
+          const accepted = localStorage.getItem(`terms-accepted-${session.email}`);
+          if (!accepted) {
+            setMustAcceptTerms(true);
+          } else {
+            setMustAcceptTerms(false);
+          }
+        }
+      } else {
+        // Se estiver em rota pública, não forçar modal
+        setMustAcceptTerms(false);
       }
     }
   }, [isHydrated, isAuthenticated, session, pathname, router, logout]);
@@ -57,5 +77,15 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     );
   }
 
-  return <>{children}</>;
+  return (
+    <>
+      {children}
+      {mustAcceptTerms && session?.email && (
+        <TermsModal 
+          email={session.email} 
+          onAccept={() => setMustAcceptTerms(false)} 
+        />
+      )}
+    </>
+  );
 }
