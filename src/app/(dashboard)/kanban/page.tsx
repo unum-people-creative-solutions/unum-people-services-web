@@ -508,12 +508,12 @@ function KanbanContent() {
                   <input type="text" value={editingLead.telefone} onChange={(e) => setEditingLead({...editingLead, telefone: e.target.value})} className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-primary-500" /></div>
                 <div>
                   <label className="text-xs font-bold text-gray-500 uppercase">Origem</label>
-                  {editingLead.origem?.includes("UTM") || editingLead.origem?.includes("Direct") ? (
+                  {editingLead?.source === "LANDING_PAGE" ? (
                     <div className="flex flex-col gap-1">
                       <div className="w-full border p-2 rounded-md bg-gray-50 text-gray-500 italic flex items-center gap-2">
                         <Tag size={14} /> {editingLead.origem}
                       </div>
-                      <span className="text-[10px] text-amber-600 font-medium">Origens automáticas do site não podem ser alteradas.</span>
+                      <span className="text-[10px] text-amber-600 font-medium">Leads vindos do site não podem ter a origem alterada.</span>
                     </div>
                   ) : (
                     <select 
@@ -525,7 +525,8 @@ function KanbanContent() {
                       <option value="WhatsApp">WhatsApp</option>
                       <option value="Instagram">Instagram</option>
                       <option value="Facebook">Facebook</option>
-                      <option value="Outro">Outro</option>                    </select>
+                      <option value="Outro">Outro</option>
+                    </select>
                   )}
                 </div>
               </div>
@@ -533,17 +534,19 @@ function KanbanContent() {
               <div className="mt-8 border-t pt-4">
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-sm font-black text-gray-700 uppercase flex items-center gap-2"><DollarSign size={16} className="text-green-600" /> Vendas do mês</h3>
-                  <button 
-                    type="button"
-                    onClick={() => {
-                      setSelectedCustomer(editingLead);
-                      setIsNewSaleModalOpen(true);
-                      setIsEditModalOpen(false);
-                    }}
-                    className="flex items-center gap-1 text-[11px] font-black bg-green-50 text-green-700 px-2.5 py-1 rounded border border-green-200 hover:bg-green-600 hover:text-white transition-all shadow-sm"
-                  >
-                    $ +
-                  </button>
+                  {editingLead.status === "GANHO" && (
+                    <button 
+                      type="button"
+                      onClick={() => {
+                        setSelectedCustomer(editingLead);
+                        setIsNewSaleModalOpen(true);
+                        setIsEditModalOpen(false);
+                      }}
+                      className="flex items-center gap-1 text-[11px] font-black bg-green-50 text-green-700 px-2.5 py-1 rounded border border-green-200 hover:bg-green-600 hover:text-white transition-all shadow-sm"
+                    >
+                      $ +
+                    </button>
+                  )}
                 </div>
                 <div className="space-y-2">
                   {editingLead.sales?.length > 0 ? editingLead.sales.map((s: any) => (

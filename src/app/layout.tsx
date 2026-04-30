@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "@/app/globals.css";
 import AuthGuard from "@/components/AuthGuard";
+import CookieBanner from "@/components/CookieBanner";
 
 export const metadata: Metadata = {
   title: "CRM | Unum People",
@@ -18,6 +19,7 @@ export default function RootLayout({
         <AuthGuard>
           {children}
         </AuthGuard>
+        <CookieBanner />
       </body>
     </html>
   );
