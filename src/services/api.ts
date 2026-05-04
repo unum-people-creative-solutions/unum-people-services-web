@@ -36,14 +36,12 @@ export interface LeadData {
 
 export const LeadService = {
   list: async (status: string, startDate?: string, endDate?: string, tenantId?: string) => {
-    let url = `/leads?status=${status}`;
-    if (startDate && endDate) {
-      url += `&start_date=${startDate}&end_date=${endDate}`;
-    }
-    if (tenantId) {
-      url += `&tenant_id=${tenantId}`;
-    }
-    const response = await api.get(url);
+    const params = new URLSearchParams({ status });
+    if (startDate) params.append('start_date', startDate);
+    if (endDate) params.append('end_date', endDate);
+    if (tenantId) params.append('tenant_id', tenantId);
+    
+    const response = await api.get(`/leads?${params.toString()}`);
     return response.data;
   },
   create: async (data: LeadData, tenantId?: string) => {
