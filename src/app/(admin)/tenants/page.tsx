@@ -69,7 +69,10 @@ export default function TenantsPage() {
   const router = useRouter();
 
   useEffect(() => {
-    if (session?.role !== "GlobalAdmin") {
+    // Aguarda a hidratação e a presença da sessão para decidir o redirecionamento
+    if (!session) return; 
+
+    if (session.role !== "GlobalAdmin") {
       router.push("/kanban");
       return;
     }

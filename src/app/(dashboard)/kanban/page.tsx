@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState, useRef, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import api, { LeadService, TenantService, LeadData } from "@/services/api";
@@ -81,10 +81,29 @@ function KanbanContent() {
     return acc + periodSales.reduce((sum: number, s: any) => sum + s.valor, 0);
   }, 0);
 
+  // Refs para rastrear mudanças e otimizar fetches
+  const prevTenantId = useRef<string | null>(null);
+  const prevMonth = useRef<number | null>(null);
+  const prevYear = useRef<number | null>(null);
+
   useEffect(() => { loadAccountData(); }, [session]);
 
   useEffect(() => {
-    if (selectedTenantId) loadLeads();
+    if (selectedTenantId) {
+      const tenantChanged = selectedTenantId !== prevTenantId.current;
+      const dateChanged = selectedMonth !== prevMonth.current || selectedYear !== prevYear.current;
+
+      if (tenantChanged) {
+        loadLeads(); // Recarrega tudo
+      } else if (dateChanged) {
+        loadLeads(["GANHO", "PERDIDO"], true); // Recarrega apenas colunas filtradas
+      }
+
+      prevTenantId.current = selectedTenantId;
+      prevMonth.current = selectedMonth;
+      prevYear.current = selectedYear;
+    }
+
     if (tenants.length > 0) {
       const found = tenants.find(t => t.id === selectedTenantId);
       if (found) setCurrentTenantName(found.nome_negocio);
@@ -107,20 +126,30 @@ function KanbanContent() {
     }
   };
 
-  const loadLeads = async (silent = false) => {
+  const loadLeads = async (statusListOrSilent: string[] | boolean = COLUMNS.map(c => c.id), silentParam = false) => {
     if (!selectedTenantId) return;
+
+    const statusList = Array.isArray(statusListOrSilent) ? statusListOrSilent : COLUMNS.map(c => c.id);
+    const silent = typeof statusListOrSilent === 'boolean' ? statusListOrSilent : silentParam;
+
     if (!silent) setLoading(true);
     try {
       const start = new Date(selectedYear, selectedMonth, 1).toISOString();
       const end = new Date(selectedYear, selectedMonth + 1, 0, 23, 59, 59).toISOString();
       
       const results: any = {};
-      await Promise.all(COLUMNS.map(async (col) => {
-        const data = await LeadService.list(col.id, start, end, selectedTenantId);
-        results[col.id] = data || [];
+      await Promise.all(statusList.map(async (status) => {
+        const isFiltered = status === "GANHO" || status === "PERDIDO";
+        const data = await LeadService.list(
+          status, 
+          isFiltered ? start : undefined, 
+          isFiltered ? end : undefined, 
+          selectedTenantId
+        );
+        results[status] = data || [];
       }));
       
-      setBoardData(results);
+      setBoardData((prev: any) => ({ ...prev, ...results }));
     } catch (err) { 
       console.error(err);
       if (!silent) setBoardData({});
@@ -372,10 +401,10 @@ function KanbanContent() {
                         return (
                           <Draggable key={lead.id} draggableId={lead.id} index={index}>
                             {(provided) => (
-                              <div ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps} className="bg-white p-4 rounded shadow-sm mb-3 border-l-4 border-primary-500 hover:shadow-md group relative transition-all">
+                              <div ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps} className="bg-white p-4 rounded shadow-sm mb-3 border-l-4 border-primary-500 hover:shadow-md group relative transition-all w-full overflow-hidden">
                                 <button onClick={() => handleEditClick(lead)} className="absolute top-2 right-2 p-1 text-gray-400 hover:text-primary-600 opacity-0 group-hover:opacity-100"><Edit2 size={14} /></button>
-                                <div className="font-bold text-gray-900 group-hover:text-primary-600 transition-colors">{lead.nome}</div>
-                                <div className="text-xs text-gray-500 mt-1">{lead.telefone}</div>
+                                <div className="font-bold text-gray-900 group-hover:text-primary-600 transition-colors truncate pr-4" title={lead.nome}>{lead.nome}</div>
+                                <div className="text-xs text-gray-500 mt-1 truncate">{lead.telefone}</div>
                                 {monthTotal > 0 && (
                                   <div className="text-xs font-black text-green-600 mt-2">
                                     {formatCurrency(monthTotal)}
@@ -389,8 +418,8 @@ function KanbanContent() {
                                 )}
 
                                 {lead.origem && (
-                                  <div className="text-[10px] text-gray-400 mt-2 italic flex items-center gap-1">
-                                    <Tag size={10} /> {lead.origem}
+                                  <div className="text-[10px] text-gray-400 mt-2 italic flex items-center gap-1 truncate">
+                                    <Tag size={10} className="shrink-0" /> <span className="truncate">{lead.origem}</span>
                                   </div>
                                 )}
                               </div>
@@ -510,8 +539,9 @@ function KanbanContent() {
                   <label className="text-xs font-bold text-gray-500 uppercase">Origem</label>
                   {editingLead?.source === "LANDING_PAGE" ? (
                     <div className="flex flex-col gap-1">
-                      <div className="w-full border p-2 rounded-md bg-gray-50 text-gray-500 italic flex items-center gap-2">
-                        <Tag size={14} /> {editingLead.origem}
+                      <div className="w-full border p-2 rounded-md bg-gray-50 text-gray-500 italic flex items-start gap-2 overflow-hidden">
+                        <Tag size={14} className="shrink-0 mt-0.5" /> 
+                        <span className="flex-1 break-all">{editingLead.origem}</span>
                       </div>
                       <span className="text-[10px] text-amber-600 font-medium">Leads vindos do site não podem ter a origem alterada.</span>
                     </div>
