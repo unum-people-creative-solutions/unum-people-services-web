@@ -52,12 +52,12 @@ export const LeadService = {
     const response = await api.post(url, data);
     return response.data;
   },
-  updateStatus: async (id: string, status: string, valor?: number, tenantId?: string) => {
+  updateStatus: async (id: string, status: string, valor?: number, dataVenda?: string, tenantId?: string) => {
     let url = `/leads/${id}`;
     if (tenantId) {
       url += `?tenant_id=${tenantId}`;
     }
-    const response = await api.patch(url, { status, valor_venda: valor });
+    const response = await api.put(url, { status, valor_venda: valor, data_venda: dataVenda });
     return response.data;
   },
   update: async (id: string, data: { nome: string; email?: string; telefone: string; origem?: string; sales?: any[]; status?: string }, tenantId?: string) => {

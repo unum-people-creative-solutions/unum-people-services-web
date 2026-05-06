@@ -55,6 +55,7 @@ function KanbanContent() {
   const [newLead, setNewLead] = useState<LeadData>({ nome: "", email: "", telefone: "", origem: "Indicação" });
   const [editingLead, setEditingLead] = useState<any>(null);
   const [saleValueMasked, setSaleValueMasked] = useState("");
+  const [saleDate, setSaleDate] = useState(new Date().toISOString().split('T')[0]);
   const [pendingMove, setPendingMove] = useState<any>(null);
 
   // Estados para Busca de Nova Venda
@@ -215,17 +216,18 @@ function KanbanContent() {
     if (!selectedCustomer) return;
     try {
       const rawValue = unmaskCurrency(saleValueMasked);
-      await LeadService.addSale(selectedCustomer.id, rawValue, new Date().toISOString(), selectedTenantId);
+      await LeadService.addSale(selectedCustomer.id, rawValue, saleDate, selectedTenantId);
       setIsNewSaleModalOpen(false);
       setSelectedCustomer(null);
       setSaleValueMasked("");
+      setSaleDate(new Date().toISOString().split('T')[0]);
       loadLeads(true);
     } catch (err) { alert("Falha ao registrar venda"); }
   };
 
-  const executeMove = async (draggableId: string, destinationId: string, valor = 0) => {
+  const executeMove = async (draggableId: string, destinationId: string, valor = 0, dataVenda?: string) => {
     try {
-      await LeadService.updateStatus(draggableId, destinationId, valor, selectedTenantId);
+      await LeadService.updateStatus(draggableId, destinationId, valor, dataVenda, selectedTenantId);
       // Sincroniza com o servidor para pegar dados atualizados
       loadLeads(true);
     } catch (err) { 
@@ -239,9 +241,10 @@ function KanbanContent() {
     e.preventDefault();
     if (!pendingMove) return;
     const rawValue = unmaskCurrency(saleValueMasked);
-    await executeMove(pendingMove.draggableId, pendingMove.destinationId, rawValue);
+    await executeMove(pendingMove.draggableId, pendingMove.destinationId, rawValue, saleDate);
     setIsSaleModalOpen(false);
     setSaleValueMasked("");
+    setSaleDate(new Date().toISOString().split('T')[0]);
     setPendingMove(null);
   };
 
@@ -512,6 +515,10 @@ function KanbanContent() {
                     <input type="text" required autoFocus value={saleValueMasked} onChange={(e) => setSaleValueMasked(maskCurrency(e.target.value))} className="w-full border p-4 pl-14 rounded-md outline-none focus:ring-2 focus:ring-green-500 text-3xl font-black text-gray-800" placeholder="0,00" />
                   </div>
                 </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-2">Data da Venda</label>
+                  <input type="date" required value={saleDate} onChange={(e) => setSaleDate(e.target.value)} className="w-full border p-3 rounded-md outline-none focus:ring-2 focus:ring-green-500 font-bold text-gray-700" />
+                </div>
                 <button type="submit" className="w-full bg-green-600 text-white p-4 rounded-md font-bold hover:bg-green-700 shadow-lg transition-all">Confirmar Venda</button>
               </form>
             )}
@@ -603,11 +610,18 @@ function KanbanContent() {
           <div className="bg-white rounded-lg p-6 w-full max-w-sm border-t-4 border-green-500 shadow-2xl">
             <h2 className="text-lg font-bold text-green-700 mb-4 flex items-center gap-2"><DollarSign size={20} /> Venda Concluída!</h2>
             <form onSubmit={confirmSale} className="space-y-4">
-              <div className="relative">
-                <span className="absolute left-4 top-4 text-2xl font-black text-green-600">R$</span>
-                <input type="text" required autoFocus value={saleValueMasked} onChange={(e) => setSaleValueMasked(maskCurrency(e.target.value))} className="w-full border p-4 pl-14 rounded-md outline-none focus:ring-2 focus:ring-green-500 text-3xl font-black text-gray-800" placeholder="0,00" />
+              <div>
+                <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Valor da Venda</label>
+                <div className="relative">
+                  <span className="absolute left-4 top-4 text-2xl font-black text-green-600">R$</span>
+                  <input type="text" required autoFocus value={saleValueMasked} onChange={(e) => setSaleValueMasked(maskCurrency(e.target.value))} className="w-full border p-4 pl-14 rounded-md outline-none focus:ring-2 focus:ring-green-500 text-3xl font-black text-gray-800" placeholder="0,00" />
+                </div>
               </div>
-              <button type="submit" className="w-full bg-green-600 text-white p-4 rounded-md font-bold hover:bg-green-700 transition-all">Confirmar Valor</button>
+              <div>
+                <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Data da Venda</label>
+                <input type="date" required value={saleDate} onChange={(e) => setSaleDate(e.target.value)} className="w-full border p-3 rounded-md outline-none focus:ring-2 focus:ring-green-500 font-bold text-gray-700" />
+              </div>
+              <button type="submit" className="w-full bg-green-600 text-white p-4 rounded-md font-bold hover:bg-green-700 transition-all">Confirmar Venda</button>
               <button type="button" onClick={() => { setIsSaleModalOpen(false); setPendingMove(null); loadLeads(true); }} className="w-full bg-gray-100 p-2 mt-2 rounded font-bold text-gray-500 text-xs">Cancelar movimento</button>
             </form>
           </div>
