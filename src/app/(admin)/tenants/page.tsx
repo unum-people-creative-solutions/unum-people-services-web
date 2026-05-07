@@ -6,6 +6,7 @@ import { useAuthStore } from "@/store/authStore";
 import { Plus, X, Building, Mail, Briefcase, Hash, LayoutGrid, Search, UserPlus, User, Eye, EyeOff, Copy, Check } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import Navbar from "@/components/Navbar";
 
 // Sub-componente para exibição segura da API Key
 function ApiKeyCell({ apiKey }: { apiKey: string }) {
@@ -138,38 +139,21 @@ export default function TenantsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col text-gray-900">
-      <header className="bg-white border-b p-4 flex justify-between items-center shadow-sm">
-        <div className="flex items-center gap-6">
-          <Image 
-            src="/images/logo_simbolo.png" 
-            alt="Unum People" 
-            width={40} 
-            height={40} 
-            className="object-contain"
-            priority
-          />
-          <span className="text-xs font-bold text-gray-400 border-l pl-6 tracking-widest uppercase flex items-center gap-2">
-            <Building size={14} /> Painel Administrativo
-          </span>
-        </div>
-        <div className="flex items-center gap-4">
-          <button 
-            onClick={() => router.push("/kanban")}
-            className="text-primary-600 border border-primary-600 px-4 py-2 rounded-md flex items-center gap-2 hover:bg-primary-50 transition-colors font-bold text-sm"
-          >
-            <LayoutGrid size={18} /> Ver Leads
-          </button>
-          <button 
-            onClick={() => setIsModalOpen(true)}
-            className="bg-primary-600 text-white px-4 py-2 rounded-md flex items-center gap-2 hover:bg-primary-700 transition-colors font-bold text-sm"
-          >
-            <Plus size={18} /> Novo Cliente
-          </button>
-          <button onClick={() => { logout(); router.push("/login"); }} className="text-sm text-gray-500 hover:text-red-500 border-l pl-4 font-bold transition-colors">Sair</button>
-        </div>
-      </header>
+      <Navbar 
+        onNewLead={() => setIsModalOpen(true)}
+        newLeadLabel="Cadastrar Inquilino"
+      />
 
       <main className="p-8 max-w-7xl mx-auto w-full">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+          <div>
+            <h1 className="text-2xl font-black text-gray-900 flex items-center gap-3 uppercase tracking-tight">
+              <Building className="text-primary-600" size={28} /> Gestão de Inquilinos
+            </h1>
+            <p className="text-gray-500 text-sm font-medium">Controle central de instâncias e acessos do sistema.</p>
+          </div>
+        </div>
+
         {/* Filtro de Busca */}
         <div className="mb-6 flex items-center bg-white p-4 rounded-lg shadow-sm border border-gray-200">
           <Search className="text-gray-400 mr-3" size={20} />

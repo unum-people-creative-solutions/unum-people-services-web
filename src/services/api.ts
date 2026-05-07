@@ -102,6 +102,12 @@ export const TenantService = {
   createUser: async (data: { email: string; name: string; tenant_id: string }) => {
     const response = await api.post('/admin/users', data);
     return response.data;
+  },
+  googleAdsCallback: async (code: string, state: string, redirectUri: string) => {
+    // Usando a construção manual da URL para garantir compatibilidade total com o esperado pelo backend
+    const url = `/auth/google-ads/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}&redirect_uri=${encodeURIComponent(redirectUri)}`;
+    const response = await api.post(url);
+    return response.data;
   }
 };
 
