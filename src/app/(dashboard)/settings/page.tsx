@@ -3,6 +3,7 @@
 import { useAuthStore } from "@/store/authStore";
 import { User, Shield, Download, Trash2, Mail, Briefcase, Fingerprint } from "lucide-react";
 import { useState } from "react";
+import Navbar from "@/components/Navbar";
 
 export default function SettingsPage() {
   const { session } = useAuthStore();
@@ -11,90 +12,94 @@ export default function SettingsPage() {
   if (!session) return null;
 
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Configurações e Privacidade</h1>
-        <p className="text-gray-500">Gerencie seus dados e preferências de acordo com a LGPD.</p>
-      </div>
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      <Navbar selectedTenantId={session.tenantId} />
 
-      {/* Perfil do Usuário */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="p-6 border-b border-gray-100 bg-gray-50/50">
-          <div className="flex items-center gap-2">
-            <User className="w-5 h-5 text-primary-600" />
-            <h2 className="font-semibold text-gray-800">Seus Dados Pessoais</h2>
-          </div>
+      <main className="p-6 max-w-4xl mx-auto space-y-8 w-full">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Configurações e Privacidade</h1>
+          <p className="text-gray-500">Gerencie seus dados e preferências de acordo com a LGPD.</p>
         </div>
-        <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-1">
-            <label className="text-xs font-bold text-gray-400 uppercase flex items-center gap-1">
-              <User className="w-3 h-3" /> Nome Completo
-            </label>
-            <p className="text-gray-900 font-medium">{session.name}</p>
-          </div>
-          <div className="space-y-1">
-            <label className="text-xs font-bold text-gray-400 uppercase flex items-center gap-1">
-              <Mail className="w-3 h-3" /> E-mail
-            </label>
-            <p className="text-gray-900 font-medium">{session.email}</p>
-          </div>
-          <div className="space-y-1">
-            <label className="text-xs font-bold text-gray-400 uppercase flex items-center gap-1">
-              <Fingerprint className="w-3 h-3" /> Tenant ID
-            </label>
-            <p className="text-gray-600 font-mono text-sm">{session.tenantId}</p>
-          </div>
-          <div className="space-y-1">
-            <label className="text-xs font-bold text-gray-400 uppercase flex items-center gap-1">
-              <Briefcase className="w-3 h-3" /> Cargo / Função
-            </label>
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800">
-              {session.role}
-            </span>
-          </div>
-        </div>
-      </div>
 
-      {/* Direitos do Titular */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="p-6 border-b border-gray-100 bg-gray-50/50">
-          <div className="flex items-center gap-2">
-            <Shield className="w-5 h-5 text-primary-600" />
-            <h2 className="font-semibold text-gray-800">Gestão de Dados (Direitos LGPD)</h2>
-          </div>
-        </div>
-        <div className="p-6 space-y-6">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 border border-blue-50 bg-blue-50/30 rounded-lg">
-            <div>
-              <h3 className="font-bold text-gray-900 flex items-center gap-2">
-                <Download className="w-4 h-4 text-blue-600" /> Portabilidade de Dados
-              </h3>
-              <p className="text-sm text-gray-600">Baixe uma cópia de todos os seus leads e dados vinculados ao seu tenant em formato CSV.</p>
+        {/* Perfil do Usuário */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="p-6 border-b border-gray-100 bg-gray-50/50">
+            <div className="flex items-center gap-2">
+              <User className="w-5 h-5 text-primary-600" />
+              <h2 className="font-semibold text-gray-800">Seus Dados Pessoais</h2>
             </div>
-            <button 
-              className="px-4 py-2 bg-white text-blue-600 border border-blue-200 rounded-lg text-sm font-bold hover:bg-blue-50 transition-colors shrink-0"
-              onClick={() => alert("Funcionalidade de exportação em desenvolvimento.")}
-            >
-              Exportar CSV
-            </button>
           </div>
-
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 border border-red-50 bg-red-50/30 rounded-lg">
-            <div>
-              <h3 className="font-bold text-red-900 flex items-center gap-2">
-                <Trash2 className="w-4 h-4 text-red-600" /> Exclusão de Dados
-              </h3>
-              <p className="text-sm text-gray-600">Solicite a exclusão permanente de sua conta e de todos os dados associados a ela.</p>
+          <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-gray-400 uppercase flex items-center gap-1">
+                <User className="w-3 h-3" /> Nome Completo
+              </label>
+              <p className="text-gray-900 font-medium">{session.name}</p>
             </div>
-            <button 
-              onClick={() => setShowDeleteModal(true)}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-bold hover:bg-red-700 transition-colors shrink-0 shadow-sm"
-            >
-              Excluir Minha Conta
-            </button>
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-gray-400 uppercase flex items-center gap-1">
+                <Mail className="w-3 h-3" /> E-mail
+              </label>
+              <p className="text-gray-900 font-medium">{session.email}</p>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-gray-400 uppercase flex items-center gap-1">
+                <Fingerprint className="w-3 h-3" /> Tenant ID
+              </label>
+              <p className="text-gray-600 font-mono text-sm">{session.tenantId}</p>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-gray-400 uppercase flex items-center gap-1">
+                <Briefcase className="w-3 h-3" /> Cargo / Função
+              </label>
+              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800">
+                {session.role}
+              </span>
+            </div>
           </div>
         </div>
-      </div>
+
+        {/* Direitos do Titular */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+          <div className="p-6 border-b border-gray-100 bg-gray-50/50">
+            <div className="flex items-center gap-2">
+              <Shield className="w-5 h-5 text-primary-600" />
+              <h2 className="font-semibold text-gray-800">Gestão de Dados (Direitos LGPD)</h2>
+            </div>
+          </div>
+          <div className="p-6 space-y-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 border border-blue-50 bg-blue-50/30 rounded-lg">
+              <div>
+                <h3 className="font-bold text-gray-900 flex items-center gap-2">
+                  <Download className="w-4 h-4 text-blue-600" /> Portabilidade de Dados
+                </h3>
+                <p className="text-sm text-gray-600">Baixe uma cópia de todos os seus leads e dados vinculados ao seu tenant em formato CSV.</p>
+              </div>
+              <button 
+                className="px-4 py-2 bg-white text-blue-600 border border-blue-200 rounded-lg text-sm font-bold hover:bg-blue-50 transition-colors shrink-0"
+                onClick={() => alert("Funcionalidade de exportação em desenvolvimento.")}
+              >
+                Exportar CSV
+              </button>
+            </div>
+
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 border border-red-50 bg-red-50/30 rounded-lg">
+              <div>
+                <h3 className="font-bold text-red-900 flex items-center gap-2">
+                  <Trash2 className="w-4 h-4 text-red-600" /> Exclusão de Dados
+                </h3>
+                <p className="text-sm text-gray-600">Solicite a exclusão permanente de sua conta e de todos os dados associados a ela.</p>
+              </div>
+              <button 
+                onClick={() => setShowDeleteModal(true)}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-bold hover:bg-red-700 transition-colors shrink-0 shadow-sm"
+              >
+                Excluir Minha Conta
+              </button>
+            </div>
+          </div>
+        </div>
+      </main>
 
       {/* Modal de Confirmação de Exclusão */}
       {showDeleteModal && (

@@ -1,14 +1,15 @@
 "use client";
 
-import { useEffect, useState, useRef, Suspense } from "react";
+import { useEffect, useState, useRef, Suspense, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import api, { LeadService, TenantService, LeadData } from "@/services/api";
 import { useAuthStore } from "@/store/authStore";
-import { Plus, X, LogOut, Settings, DollarSign, AlertCircle, Calendar, Eye, EyeOff, Users, Edit2, Mail, Phone, User, Building, Search, TrendingUp, RefreshCw, HelpCircle, Tag } from "lucide-react";
+import { Plus, X, LogOut, Settings, DollarSign, AlertCircle, Calendar, Eye, EyeOff, Users, Edit2, Mail, Phone, User, Building, Search, TrendingUp, RefreshCw, HelpCircle, Tag, ExternalLink } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
+import Navbar from "@/components/Navbar";
 
 const COLUMNS = [
   { id: "NOVO", title: "Novos Leads", order: 0 },
@@ -87,31 +88,7 @@ function KanbanContent() {
   const prevMonth = useRef<number | null>(null);
   const prevYear = useRef<number | null>(null);
 
-  useEffect(() => { loadAccountData(); }, [session]);
-
-  useEffect(() => {
-    if (selectedTenantId) {
-      const tenantChanged = selectedTenantId !== prevTenantId.current;
-      const dateChanged = selectedMonth !== prevMonth.current || selectedYear !== prevYear.current;
-
-      if (tenantChanged) {
-        loadLeads(); // Recarrega tudo
-      } else if (dateChanged) {
-        loadLeads(["GANHO", "PERDIDO"], true); // Recarrega apenas colunas filtradas
-      }
-
-      prevTenantId.current = selectedTenantId;
-      prevMonth.current = selectedMonth;
-      prevYear.current = selectedYear;
-    }
-
-    if (tenants.length > 0) {
-      const found = tenants.find(t => t.id === selectedTenantId);
-      if (found) setCurrentTenantName(found.nome_negocio);
-    }
-  }, [selectedMonth, selectedYear, selectedTenantId, tenants]);
-
-  const loadAccountData = async () => {
+  const loadAccountData = useCallback(async () => {
     try {
       let data = session?.role === "GlobalAdmin" ? await TenantService.list() : await TenantService.listMyTenants();
       const tenantsData = data || [];
@@ -125,9 +102,9 @@ function KanbanContent() {
       console.error(err);
       setTenants([]);
     }
-  };
+  }, [session, selectedTenantId]);
 
-  const loadLeads = async (statusListOrSilent: string[] | boolean = COLUMNS.map(c => c.id), silentParam = false) => {
+  const loadLeads = useCallback(async (statusListOrSilent: string[] | boolean = COLUMNS.map(c => c.id), silentParam = false) => {
     if (!selectedTenantId) return;
 
     const statusList = Array.isArray(statusListOrSilent) ? statusListOrSilent : COLUMNS.map(c => c.id);
@@ -157,7 +134,31 @@ function KanbanContent() {
     } finally { 
       if (!silent) setLoading(false); 
     }
-  };
+  }, [selectedTenantId, selectedYear, selectedMonth]);
+
+  useEffect(() => { loadAccountData(); }, [loadAccountData]);
+
+  useEffect(() => {
+    if (selectedTenantId) {
+      const tenantChanged = selectedTenantId !== prevTenantId.current;
+      const dateChanged = selectedMonth !== prevMonth.current || selectedYear !== prevYear.current;
+
+      if (tenantChanged) {
+        loadLeads(); // Recarrega tudo
+      } else if (dateChanged) {
+        loadLeads(["GANHO", "PERDIDO"], true); // Recarrega apenas colunas filtradas
+      }
+
+      prevTenantId.current = selectedTenantId;
+      prevMonth.current = selectedMonth;
+      prevYear.current = selectedYear;
+    }
+
+    if (tenants.length > 0) {
+      const found = tenants.find(t => t.id === selectedTenantId);
+      if (found) setCurrentTenantName(found.nome_negocio);
+    }
+  }, [selectedMonth, selectedYear, selectedTenantId, tenants, loadLeads]);
 
   const handleLogout = () => {
     logout();
@@ -298,73 +299,35 @@ function KanbanContent() {
 
   return (
     <div className="h-screen flex flex-col bg-gray-50 text-gray-900 font-sans overflow-hidden">
-      <header className="bg-white border-b p-4 flex justify-between items-center shadow-sm z-10">
-        <div className="flex items-center gap-6">
-          <Image src="/images/logo_simbolo.png" alt="Unum People" width={40} height={40} className="object-contain" priority />
-          <div className="flex items-center gap-3 border-l pl-6">
-            <div className="flex items-center bg-primary-50 rounded-lg p-1 border border-primary-100">
-              <Building size={14} className="text-primary-400 ml-2" />
-              <select value={selectedTenantId} onChange={(e) => setSelectedTenantId(e.target.value)} className="bg-transparent border-none text-xs font-bold text-primary-800 p-2 cursor-pointer max-w-[200px]">
-                {tenants.map(t => <option key={t.id} value={t.id}>{t.nome_negocio}</option>)}
-              </select>
-            </div>
-            <div className="flex items-center bg-gray-100 rounded-lg p-1">
-              <Calendar size={14} className="text-gray-400 ml-2" />
-              <select value={selectedMonth} onChange={(e) => setSelectedMonth(parseInt(e.target.value))} className="bg-transparent border-none text-xs font-bold text-gray-700 p-2 cursor-pointer">
-                {["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"].map((m, i) => <option key={i} value={i}>{m}</option>)}
-              </select>
-              <select value={selectedYear} onChange={(e) => setSelectedYear(parseInt(e.target.value))} className="bg-transparent border-none text-xs font-bold text-gray-700 p-2 cursor-pointer">
-                {[2025, 2026, 2027].map(y => <option key={y} value={y}>{y}</option>)}
-              </select>
-            </div>
-            <div className="flex items-center gap-2 bg-green-50 border border-green-100 px-3 py-2 rounded-lg">
-              <span className="text-[10px] font-bold text-green-700 uppercase">Faturamento</span>
-              <span className="text-sm font-black text-green-700 font-mono">{showRevenue ? formatCurrency(totalRevenue) : "R$ ••••••"}</span>
-              <button onClick={() => setShowRevenue(!showRevenue)} className="text-green-600">{showRevenue ? <EyeOff size={14} /> : <Eye size={14} />}</button>
-            </div>
-          </div>
-        </div>
+      <Navbar 
+        selectedTenantId={selectedTenantId}
+        onRefresh={() => loadLeads()}
+        onNewLead={() => setIsModalOpen(true)}
+        onNewSale={() => setIsNewSaleModalOpen(true)}
+      >
         <div className="flex items-center gap-3">
-          <a 
-            href="http://docs.unumpeople.com.br/crm/" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="flex items-center gap-2 text-gray-500 hover:text-primary-600 transition-all font-bold text-xs px-2"
-          >
-            <HelpCircle size={18} /> Ajuda
-          </a>
-          <button 
-            onClick={() => loadLeads()} 
-            disabled={loading}
-            className="p-2 text-gray-500 hover:text-primary-600 hover:bg-gray-100 rounded-md transition-all disabled:opacity-50"
-            title="Atualizar Leads"
-          >
-            <RefreshCw size={18} className={loading ? "animate-spin" : ""} />
-          </button>
-          <button onClick={() => setIsNewSaleModalOpen(true)} className="bg-green-600 text-white px-3 py-2 rounded-md flex items-center gap-2 hover:bg-green-700 text-xs font-bold transition-all shadow-sm">
-            <TrendingUp size={16} /> Nova Venda
-          </button>
-          <button onClick={() => setIsModalOpen(true)} className="bg-primary-600 text-white px-4 py-2 rounded-md flex items-center gap-2 hover:bg-primary-700 text-sm font-bold shadow-sm">
-            <Plus size={18} /> Novo Lead
-          </button>
-          <div className="flex items-center gap-4 border-l pl-4 ml-2">
-            <div className="text-right leading-tight">
-              <p className="text-sm font-bold">{session?.name}</p>
-              <p className="text-[10px] text-gray-500 uppercase font-bold">{session?.role}</p>
-            </div>
-            {session?.role === "GlobalAdmin" && (
-              <button 
-                onClick={() => router.push("/tenants")}
-                className="bg-primary-50 text-primary-600 hover:bg-primary-100 p-2 rounded-lg transition-all border border-primary-100 shadow-sm flex items-center justify-center"
-                title="Painel Administrativo"
-              >
-                <Settings size={18} />
-              </button>
-            )}
-            <button onClick={handleLogout} className="text-gray-400 hover:text-red-500" title="Sair"><LogOut size={20} /></button>
+          <div className="flex items-center bg-primary-50 rounded-lg p-1 border border-primary-100">
+            <Building size={14} className="text-primary-400 ml-2" />
+            <select value={selectedTenantId} onChange={(e) => setSelectedTenantId(e.target.value)} className="bg-transparent border-none text-xs font-bold text-primary-800 p-2 cursor-pointer max-w-[180px]">
+              {tenants.map(t => <option key={t.id} value={t.id}>{t.nome_negocio}</option>)}
+            </select>
+          </div>
+          <div className="flex items-center bg-gray-100 rounded-lg p-1">
+            <Calendar size={14} className="text-gray-400 ml-2" />
+            <select value={selectedMonth} onChange={(e) => setSelectedMonth(parseInt(e.target.value))} className="bg-transparent border-none text-xs font-bold text-gray-700 p-2 cursor-pointer">
+              {["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"].map((m, i) => <option key={i} value={i}>{m}</option>)}
+            </select>
+            <select value={selectedYear} onChange={(e) => setSelectedYear(parseInt(e.target.value))} className="bg-transparent border-none text-xs font-bold text-gray-700 p-2 cursor-pointer">
+              {[2025, 2026, 2027].map(y => <option key={y} value={y}>{y}</option>)}
+            </select>
+          </div>
+          <div className="flex items-center gap-2 bg-green-50 border border-green-100 px-3 py-2 rounded-lg ml-2">
+            <span className="text-[10px] font-bold text-green-700 uppercase">Faturamento</span>
+            <span className="text-sm font-black text-green-700 font-mono">{showRevenue ? formatCurrency(totalRevenue) : "R$ ••••••"}</span>
+            <button onClick={() => setShowRevenue(!showRevenue)} className="text-green-600">{showRevenue ? <EyeOff size={14} /> : <Eye size={14} />}</button>
           </div>
         </div>
-      </header>
+      </Navbar>
 
       <main className="flex-1 p-6 min-h-0 relative">
         {/* Overlay de Loading Moderno (Não desmonta a tela) */}
