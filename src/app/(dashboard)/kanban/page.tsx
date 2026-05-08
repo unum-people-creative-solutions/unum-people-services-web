@@ -11,6 +11,7 @@ import Link from "next/link";
 import Image from "next/image";
 import Navbar from "@/components/Navbar";
 import { motion, AnimatePresence } from "framer-motion";
+import * as XLSX from "xlsx";
 
 const COLUMNS = [
   { id: "NOVO", title: "Novos Leads", order: 0 },
@@ -97,6 +98,105 @@ function KanbanContent() {
   const [selectedYear, setSelectedYear] = useState(now.getFullYear());
 
   const [isMobile, setIsMobile] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+
+  // Função para exportar Excel de vendas e leads
+  const handleExportSales = () => {
+    setIsExporting(true);
+    try {
+      const salesLeads = boardData["GANHO"] || [];
+      
+      if (salesLeads.length === 0) {
+        alert("Nenhuma venda encontrada no período selecionado.");
+        setIsExporting(false);
+        return;
+      }
+
+      // 1. DADOS PARA A ABA DE RESUMO (Primeira Aba)
+      const summaryData: any[] = [];
+      let grandTotal = 0;
+
+      salesLeads.forEach((lead: any) => {
+        const periodSales = (lead.sales || []).filter((s: any) => {
+          const d = parseSafeDate(s.data);
+          return d.getMonth() === selectedMonth && d.getFullYear() === selectedYear;
+        });
+
+        if (periodSales.length > 0) {
+          const totalLeadSales = periodSales.reduce((sum: number, s: any) => sum + s.valor, 0);
+          grandTotal += totalLeadSales;
+
+          summaryData.push({
+            "Nome do Cliente": lead.nome,
+            "E-mail": lead.email,
+            "Telefone": lead.telefone || "N/A",
+            "Origem": lead.origem,
+            "Qtd. Vendas": periodSales.length,
+            "Total de Vendas (R$)": totalLeadSales
+          });
+        }
+      });
+
+      if (summaryData.length === 0) {
+        alert("Nenhuma venda encontrada no período selecionado.");
+        setIsExporting(false);
+        return;
+      }
+
+      // Adiciona linha de TOTAL no Resumo
+      summaryData.push({
+        "Nome do Cliente": "TOTAL GERAL",
+        "E-mail": "",
+        "Telefone": "",
+        "Origem": "",
+        "Qtd. Vendas": "",
+        "Total de Vendas (R$)": grandTotal
+      });
+
+      // 2. DADOS PARA A ABA DE VENDAS DETALHADAS (Segunda Aba)
+      const detailedData: any[] = [];
+      salesLeads.forEach((lead: any) => {
+        const periodSales = (lead.sales || []).filter((s: any) => {
+          const d = parseSafeDate(s.data);
+          return d.getMonth() === selectedMonth && d.getFullYear() === selectedYear;
+        });
+
+        periodSales.forEach((sale: any) => {
+          detailedData.push({
+            "Nome do Cliente": lead.nome,
+            "E-mail": lead.email,
+            "Valor da Venda (R$)": sale.valor,
+            "Data da Venda": new Date(sale.data).toLocaleDateString('pt-BR')
+          });
+        });
+      });
+
+      // Criação do Livro e Abas
+      const wb = XLSX.utils.book_new();
+
+      // Aba 1: Resumo
+      const wsSummary = XLSX.utils.json_to_sheet(summaryData);
+      const summaryCols = [{ wch: 35 }, { wch: 35 }, { wch: 20 }, { wch: 15 }, { wch: 15 }, { wch: 25 }];
+      wsSummary['!cols'] = summaryCols;
+      XLSX.utils.book_append_sheet(wb, wsSummary, "Resumo");
+
+      // Aba 2: Vendas Detalhadas
+      const wsDetailed = XLSX.utils.json_to_sheet(detailedData);
+      const detailedCols = [{ wch: 35 }, { wch: 35 }, { wch: 20 }, { wch: 20 }];
+      wsDetailed['!cols'] = detailedCols;
+      XLSX.utils.book_append_sheet(wb, wsDetailed, "Vendas Detalhadas");
+
+      // Download
+      const fileName = `relatorio-comercial-${currentTenantName.replace(/\s+/g, '-').toLowerCase()}-${new Date().toISOString().split('T')[0]}.xlsx`;
+      XLSX.writeFile(wb, fileName);
+
+    } catch (error) {
+      console.error("Erro ao exportar Excel:", error);
+      alert("Erro ao gerar relatório Excel.");
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -234,12 +334,35 @@ function KanbanContent() {
       setFoundCustomers([]);
       return;
     }
+
+    const normalize = (str: string) => 
+      str?.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() || "";
+    
+    const normalizedQuery = normalize(query);
+
+    // 1. Busca Local Otimizada (Abrangente e Case/Accent Insensitive)
+    const localMatches = Object.values(boardData).flat().filter((lead: any) => {
+      const nomeNorm = normalize(lead.nome);
+      const emailNorm = normalize(lead.email);
+      const telefone = lead.telefone || "";
+      
+      return nomeNorm.includes(normalizedQuery) || 
+             emailNorm.includes(normalizedQuery) || 
+             telefone.includes(query);
+    });
+
     try {
-      const data = await LeadService.searchCustomers(query, selectedTenantId);
-      setFoundCustomers(data || []);
+      // 2. Busca Global via API
+      const apiResults = await LeadService.searchCustomers(query, selectedTenantId);
+      
+      // Mescla e remove duplicatas por ID
+      const combined = [...localMatches, ...(apiResults || [])];
+      const unique = Array.from(new Map(combined.map(item => [item.id, item])).values());
+      
+      setFoundCustomers(unique);
     } catch (err) { 
       console.error(err);
-      setFoundCustomers([]);
+      setFoundCustomers(localMatches);
     }
   };
 
@@ -359,18 +482,37 @@ function KanbanContent() {
             <span className="text-sm font-black text-green-700 font-mono">{showRevenue ? formatCurrency(totalRevenue) : "R$ ••••••"}</span>
             <button onClick={() => setShowRevenue(!showRevenue)} className="text-green-600">{showRevenue ? <EyeOff size={14} /> : <Eye size={14} />}</button>
           </div>
+
+          <button 
+            onClick={handleExportSales}
+            disabled={isExporting}
+            className="flex items-center gap-2 bg-white border border-gray-200 px-4 py-2 rounded-lg text-xs font-bold text-gray-700 hover:bg-gray-50 transition-all shadow-sm active:scale-95 disabled:opacity-50"
+            title="Exportar Relatório de Vendas (CSV)"
+          >
+            <TrendingUp size={14} className={isExporting ? "animate-pulse text-primary-600" : "text-gray-400"} />
+            {isExporting ? "Exportando..." : "Exportar Relatório"}
+          </button>
         </div>
 
         {/* Mobile Revenue (Line 1) */}
-        <div className="flex md:hidden items-center gap-2 bg-green-50 border border-green-100 px-2.5 py-1.5 rounded-xl shadow-sm">
-          <span className="text-[10px] font-black text-green-700 font-mono">
-            {showRevenue ? formatCurrency(totalRevenue) : "R$ •••"}
-          </span>
+        <div className="flex md:hidden items-center gap-2">
+          <div className="flex items-center gap-2 bg-green-50 border border-green-100 px-2.5 py-1.5 rounded-xl shadow-sm">
+            <span className="text-[10px] font-black text-green-700 font-mono">
+              {showRevenue ? formatCurrency(totalRevenue) : "R$ •••"}
+            </span>
+            <button 
+              onClick={() => setShowRevenue(!showRevenue)} 
+              className="text-green-600 p-0.5 active:scale-95 transition-transform"
+            >
+              {showRevenue ? <EyeOff size={14} /> : <Eye size={14} />}
+            </button>
+          </div>
           <button 
-            onClick={() => setShowRevenue(!showRevenue)} 
-            className="text-green-600 p-0.5 active:scale-95 transition-transform"
+            onClick={handleExportSales}
+            disabled={isExporting}
+            className="p-2 bg-white border border-gray-200 rounded-xl shadow-sm active:scale-90 transition-all text-gray-500"
           >
-            {showRevenue ? <EyeOff size={14} /> : <Eye size={14} />}
+            <TrendingUp size={16} className={isExporting ? "animate-pulse text-primary-600" : ""} />
           </button>
         </div>
       </Navbar>
@@ -507,37 +649,42 @@ function KanbanContent() {
                 }
               }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-t-[32px] md:rounded-lg p-6 w-full max-w-md shadow-2xl text-gray-900 h-[95vh] md:h-auto"
+              className="bg-white rounded-t-[32px] md:rounded-lg w-full max-w-md shadow-2xl text-gray-900 max-h-[95vh] flex flex-col overflow-hidden"
             >
-              <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-4 md:hidden" />
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-lg font-bold flex items-center gap-2 text-primary-700"><Plus size={20}/> Novo Lead Manual</h2>
-                <button onClick={() => setIsModalOpen(false)}><X size={20} /></button>
+              <div className="shrink-0 px-6 pt-6">
+                <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-4 md:hidden" />
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-lg font-bold flex items-center gap-2 text-primary-700"><Plus size={20}/> Novo Lead Manual</h2>
+                  <button onClick={() => setIsModalOpen(false)}><X size={20} /></button>
+                </div>
               </div>
-              <form onSubmit={handleCreateLead} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">Nome</label>
-                  <input type="text" required value={newLead.nome} onChange={(e) => setNewLead({...newLead, nome: e.target.value})} className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-primary-500" placeholder="Nome do cliente" />
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">E-mail</label>
-                  <input type="email" value={newLead.email} onChange={(e) => setNewLead({...newLead, email: e.target.value})} className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-primary-500" placeholder="email@exemplo.com" />
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">WhatsApp</label>
-                  <input type="text" required value={newLead.telefone} onChange={(e) => setNewLead({...newLead, telefone: e.target.value})} className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-primary-500" placeholder="(00) 00000-0000" />
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1">Origem</label>
-                  <select value={newLead.origem} onChange={(e) => setNewLead({...newLead, origem: e.target.value})} className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-primary-500">
-                    <option value="Indicação">Indicação</option>
-                    <option value="WhatsApp">WhatsApp</option>
-                    <option value="Instagram">Instagram</option>
-                    <option value="Facebook">Facebook</option>
-                    <option value="Outro">Outro</option>                </select>
-                </div>
-                <button type="submit" className="w-full bg-primary-600 text-white p-3 rounded-md font-bold hover:bg-primary-700 shadow-lg transition-all mt-4">Criar Lead</button>
-              </form>
+
+              <div className="overflow-y-auto flex-1 px-6 pb-6 custom-scrollbar">
+                <form onSubmit={handleCreateLead} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Nome</label>
+                    <input type="text" required value={newLead.nome} onChange={(e) => setNewLead({...newLead, nome: e.target.value})} className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-primary-500" placeholder="Nome do cliente" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">E-mail</label>
+                    <input type="email" value={newLead.email} onChange={(e) => setNewLead({...newLead, email: e.target.value})} className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-primary-500" placeholder="email@exemplo.com" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">WhatsApp</label>
+                    <input type="text" required value={newLead.telefone} onChange={(e) => setNewLead({...newLead, telefone: e.target.value})} className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-primary-500" placeholder="(00) 00000-0000" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Origem</label>
+                    <select value={newLead.origem} onChange={(e) => setNewLead({...newLead, origem: e.target.value})} className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-primary-500">
+                      <option value="Indicação">Indicação</option>
+                      <option value="WhatsApp">WhatsApp</option>
+                      <option value="Instagram">Instagram</option>
+                      <option value="Facebook">Facebook</option>
+                      <option value="Outro">Outro</option>                </select>
+                  </div>
+                  <button type="submit" className="w-full bg-primary-600 text-white p-3 rounded-md font-bold hover:bg-primary-700 shadow-lg transition-all mt-4">Criar Lead</button>
+                </form>
+              </div>
             </motion.div>
           </motion.div>
         )}
@@ -568,51 +715,59 @@ function KanbanContent() {
                 }
               }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-t-[32px] md:rounded-lg p-6 w-full max-w-md shadow-2xl h-[95vh] md:h-auto"
+              className="bg-white rounded-t-[32px] md:rounded-lg w-full max-w-md shadow-2xl max-h-[95vh] flex flex-col overflow-hidden"
             >
-              <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-4 md:hidden" />
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-lg font-bold flex items-center gap-2 text-green-700"><TrendingUp size={20}/> Registrar Nova Venda</h2>
-                <button onClick={() => {setIsNewSaleModalOpen(false); setSelectedCustomer(null);}}><X size={20} /></button>
-              </div>
-              {!selectedCustomer ? (
-                <div className="space-y-4">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-3 text-gray-400" size={18} />
-                    <input type="text" placeholder="Pesquisar cliente por nome..." value={customerSearchQuery} onChange={(e) => handleSearchCustomers(e.target.value)} className="w-full border p-3 pl-10 rounded-md outline-none focus:ring-2 focus:ring-green-500" />
-                  </div>
-                  <div className="max-h-60 overflow-y-auto space-y-2 custom-scrollbar">
-                    {foundCustomers.map(c => (
-                      <button key={c.id} onClick={() => setSelectedCustomer(c)} className="w-full text-left p-3 hover:bg-green-50 rounded-md border border-transparent hover:border-green-100 flex justify-between items-center group transition-all">
-                        <span className="font-medium">{c.nome}</span>
-                        <Plus size={14} className="text-green-500 opacity-0 group-hover:opacity-100" />
-                      </button>
-                    ))}
-                  </div>
+              <div className="shrink-0 px-6 pt-6">
+                <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-4 md:hidden" />
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-lg font-bold flex items-center gap-2 text-green-700"><TrendingUp size={20}/> Registrar Nova Venda</h2>
+                  <button onClick={() => {setIsNewSaleModalOpen(false); setSelectedCustomer(null);}}><X size={20} /></button>
                 </div>
-              ) : (
-                <form onSubmit={handleAddManualSale} className="space-y-4">
-                  <div className="bg-green-50 p-4 rounded-md border border-green-100 flex justify-between items-center">
-                    <div>
-                      <p className="text-[10px] text-green-600 font-bold uppercase">Cliente selecionado</p>
-                      <p className="font-bold text-green-900">{selectedCustomer.nome}</p>
-                    </div>
-                    <button type="button" onClick={() => setSelectedCustomer(null)} className="text-xs text-green-700 hover:underline font-bold">Trocar</button>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-2">Valor da Venda</label>
+              </div>
+
+              <div className="overflow-y-auto flex-1 px-6 pb-6 custom-scrollbar">
+                {!selectedCustomer ? (
+                  <div className="space-y-4">
                     <div className="relative">
-                      <span className="absolute left-4 top-4 text-2xl font-black text-green-600">R$</span>
-                      <input type="text" required autoFocus value={saleValueMasked} onChange={(e) => setSaleValueMasked(maskCurrency(e.target.value))} className="w-full border p-4 pl-14 rounded-md outline-none focus:ring-2 focus:ring-green-500 text-3xl font-black text-gray-800" placeholder="0,00" />
+                      <Search className="absolute left-3 top-3 text-gray-400" size={18} />
+                      <input type="text" placeholder="Pesquisar cliente por nome..." value={customerSearchQuery} onChange={(e) => handleSearchCustomers(e.target.value)} className="w-full border p-3 pl-10 rounded-md outline-none focus:ring-2 focus:ring-green-500" />
+                    </div>
+                    <div className="max-h-60 overflow-y-auto space-y-2 custom-scrollbar">
+                      {foundCustomers.map(c => (
+                        <button key={c.id} onClick={() => setSelectedCustomer(c)} className="w-full text-left p-3 hover:bg-green-50 rounded-md border border-transparent hover:border-green-100 flex justify-between items-center group transition-all">
+                          <div className="flex flex-col">
+                            <span className="font-bold text-gray-800">{c.nome}</span>
+                            <span className="text-[10px] text-gray-500">{c.telefone} {c.status ? `• ${c.status}` : ''}</span>
+                          </div>
+                          <Plus size={14} className="text-green-500 opacity-0 group-hover:opacity-100" />
+                        </button>
+                      ))}
                     </div>
                   </div>
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-2">Data da Venda</label>
-                    <input type="date" required value={saleDate} onChange={(e) => setSaleDate(e.target.value)} className="w-full border p-3 rounded-md outline-none focus:ring-2 focus:ring-green-500 font-bold text-gray-700" />
-                  </div>
-                  <button type="submit" className="w-full bg-green-600 text-white p-4 rounded-md font-bold hover:bg-green-700 shadow-lg transition-all">Confirmar Venda</button>
-                </form>
-              )}
+                ) : (
+                  <form onSubmit={handleAddManualSale} className="space-y-4">
+                    <div className="bg-green-50 p-4 rounded-md border border-green-100 flex justify-between items-center">
+                      <div>
+                        <p className="text-[10px] text-green-600 font-bold uppercase">Cliente selecionado</p>
+                        <p className="font-bold text-green-900">{selectedCustomer.nome}</p>
+                      </div>
+                      <button type="button" onClick={() => setSelectedCustomer(null)} className="text-xs text-green-700 hover:underline font-bold">Trocar</button>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2">Valor da Venda</label>
+                      <div className="relative">
+                        <span className="absolute left-4 top-4 text-2xl font-black text-green-600">R$</span>
+                        <input type="text" required autoFocus value={saleValueMasked} onChange={(e) => setSaleValueMasked(maskCurrency(e.target.value))} className="w-full border p-4 pl-14 rounded-md outline-none focus:ring-2 focus:ring-green-500 text-3xl font-black text-gray-800" placeholder="0,00" />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-2">Data da Venda</label>
+                      <input type="date" required value={saleDate} onChange={(e) => setSaleDate(e.target.value)} className="w-full border p-3 rounded-md outline-none focus:ring-2 focus:ring-green-500 font-bold text-gray-700" />
+                    </div>
+                    <button type="submit" className="w-full bg-green-600 text-white p-4 rounded-md font-bold hover:bg-green-700 shadow-lg transition-all">Confirmar Venda</button>
+                  </form>
+                )}
+              </div>
             </motion.div>
           </motion.div>
         )}
@@ -642,79 +797,84 @@ function KanbanContent() {
                 }
               }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-t-[32px] md:rounded-lg p-6 w-full max-w-md shadow-xl h-[95vh] md:h-auto md:max-h-[90vh] overflow-y-auto custom-scrollbar"
+              className="bg-white rounded-t-[32px] md:rounded-lg w-full max-w-md shadow-xl max-h-[95vh] md:max-h-[90vh] flex flex-col overflow-hidden"
             >
-              <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-4 md:hidden" />
-              <div className="flex justify-between items-center mb-6 border-b pb-4">
-                <h2 className="text-lg font-bold flex items-center gap-2"><Edit2 size={18} className="text-primary-600" /> Editar Lead</h2>
-                <button onClick={() => setIsEditModalOpen(false)}><X size={20} /></button>
+              <div className="shrink-0 px-6 pt-6">
+                <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-4 md:hidden" />
+                <div className="flex justify-between items-center mb-6 border-b pb-4">
+                  <h2 className="text-lg font-bold flex items-center gap-2"><Edit2 size={18} className="text-primary-600" /> Editar Lead</h2>
+                  <button onClick={() => setIsEditModalOpen(false)}><X size={20} /></button>
+                </div>
               </div>
-              <form onSubmit={handleUpdateLead} className="space-y-4">
-                <div className="grid grid-cols-1 gap-4">
-                  <div><label className="text-xs font-bold text-gray-500 uppercase">Nome</label>
-                    <input type="text" value={editingLead.nome} onChange={(e) => setEditingLead({...editingLead, nome: e.target.value})} className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-primary-500" /></div>
-                  <div><label className="text-xs font-bold text-gray-500 uppercase">E-mail</label>
-                    <input type="email" value={editingLead.email || ""} onChange={(e) => setEditingLead({...editingLead, email: e.target.value})} className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-primary-500" /></div>
-                  <div><label className="text-xs font-bold text-gray-500 uppercase">WhatsApp</label>
-                    <input type="text" value={editingLead.telefone} onChange={(e) => setEditingLead({...editingLead, telefone: e.target.value})} className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-primary-500" /></div>
-                  <div>
-                    <label className="text-xs font-bold text-gray-500 uppercase">Origem</label>
-                    {editingLead?.source === "LANDING_PAGE" ? (
-                      <div className="flex flex-col gap-1">
-                        <div className="w-full border p-2 rounded-md bg-gray-50 text-gray-500 italic flex items-start gap-2 overflow-hidden">
-                          <Tag size={14} className="shrink-0 mt-0.5" /> 
-                          <span className="flex-1 break-all">{editingLead.origem}</span>
-                        </div>
-                        <span className="text-[10px] text-amber-600 font-medium">Leads vindos do site não podem ter a origem alterada.</span>
-                      </div>
-                    ) : (
-                      <select 
-                        value={editingLead.origem || "Indicação"} 
-                        onChange={(e) => setEditingLead({...editingLead, origem: e.target.value})} 
-                        className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-primary-500 bg-white"
-                      >
-                        <option value="Indicação">Indicação</option>
-                        <option value="WhatsApp">WhatsApp</option>
-                        <option value="Instagram">Instagram</option>
-                        <option value="Facebook">Facebook</option>
-                        <option value="Outro">Outro</option>
-                      </select>
-                    )}
-                  </div>
-                </div>
-                
-                <div className="mt-8 border-t pt-4">
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-sm font-black text-gray-700 uppercase flex items-center gap-2"><DollarSign size={16} className="text-green-600" /> Vendas do mês</h3>
-                    {editingLead.status === "GANHO" && (
-                      <button 
-                        type="button"
-                        onClick={() => {
-                          setSelectedCustomer(editingLead);
-                          setIsNewSaleModalOpen(true);
-                          setIsEditModalOpen(false);
-                        }}
-                        className="flex items-center gap-1 text-[11px] font-black bg-green-50 text-green-700 px-2.5 py-1 rounded border border-green-200 hover:bg-green-600 hover:text-white transition-all shadow-sm"
-                      >
-                        $ +
-                      </button>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    {editingLead.sales?.length > 0 ? editingLead.sales.map((s: any) => (
-                      <div key={s.id} className="flex justify-between items-center bg-gray-50 p-3 rounded-md border">
-                        <span className="text-xs font-bold text-gray-400">{parseSafeDate(s.data).toLocaleDateString('pt-BR')}</span>
-                        <span className="font-black text-green-700">{formatCurrency(s.valor)}</span>
-                      </div>
-                    )) : <p className="text-center text-xs text-gray-400 py-4 italic">Nenhuma venda registrada.</p>}
-                  </div>
-                </div>
 
-                <div className="flex gap-3 mt-8">
-                  <button type="button" onClick={() => setIsEditModalOpen(false)} className="flex-1 bg-gray-100 p-3 rounded-md font-bold">Cancelar</button>
-                  <button type="submit" className="flex-1 bg-primary-600 text-white p-3 rounded-md font-bold">Salvar Alterações</button>
-                </div>
-              </form>
+              <div className="overflow-y-auto flex-1 px-6 pb-6 custom-scrollbar">
+                <form onSubmit={handleUpdateLead} className="space-y-4">
+                  <div className="grid grid-cols-1 gap-4">
+                    <div><label className="text-xs font-bold text-gray-500 uppercase">Nome</label>
+                      <input type="text" value={editingLead.nome} onChange={(e) => setEditingLead({...editingLead, nome: e.target.value})} className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-primary-500" /></div>
+                    <div><label className="text-xs font-bold text-gray-500 uppercase">E-mail</label>
+                      <input type="email" value={editingLead.email || ""} onChange={(e) => setEditingLead({...editingLead, email: e.target.value})} className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-primary-500" /></div>
+                    <div><label className="text-xs font-bold text-gray-500 uppercase">WhatsApp</label>
+                      <input type="text" value={editingLead.telefone} onChange={(e) => setEditingLead({...editingLead, telefone: e.target.value})} className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-primary-500" /></div>
+                    <div>
+                      <label className="text-xs font-bold text-gray-500 uppercase">Origem</label>
+                      {editingLead?.source === "LANDING_PAGE" ? (
+                        <div className="flex flex-col gap-1">
+                          <div className="w-full border p-2 rounded-md bg-gray-50 text-gray-500 italic flex items-start gap-2 overflow-hidden">
+                            <Tag size={14} className="shrink-0 mt-0.5" /> 
+                            <span className="flex-1 break-all">{editingLead.origem}</span>
+                          </div>
+                          <span className="text-[10px] text-amber-600 font-medium">Leads vindos do site não podem ter a origem alterada.</span>
+                        </div>
+                      ) : (
+                        <select 
+                          value={editingLead.origem || "Indicação"} 
+                          onChange={(e) => setEditingLead({...editingLead, origem: e.target.value})} 
+                          className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-primary-500 bg-white"
+                        >
+                          <option value="Indicação">Indicação</option>
+                          <option value="WhatsApp">WhatsApp</option>
+                          <option value="Instagram">Instagram</option>
+                          <option value="Facebook">Facebook</option>
+                          <option value="Outro">Outro</option>
+                        </select>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="mt-8 border-t pt-4">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-sm font-black text-gray-700 uppercase flex items-center gap-2"><DollarSign size={16} className="text-green-600" /> Vendas do mês</h3>
+                      {editingLead.status === "GANHO" && (
+                        <button 
+                          type="button"
+                          onClick={() => {
+                            setSelectedCustomer(editingLead);
+                            setIsNewSaleModalOpen(true);
+                            setIsEditModalOpen(false);
+                          }}
+                          className="flex items-center gap-1 text-[11px] font-black bg-green-50 text-green-700 px-2.5 py-1 rounded border border-green-200 hover:bg-green-600 hover:text-white transition-all shadow-sm"
+                        >
+                          $ +
+                        </button>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      {editingLead.sales?.length > 0 ? editingLead.sales.map((s: any) => (
+                        <div key={s.id} className="flex justify-between items-center bg-gray-50 p-3 rounded-md border">
+                          <span className="text-xs font-bold text-gray-400">{parseSafeDate(s.data).toLocaleDateString('pt-BR')}</span>
+                          <span className="font-black text-green-700">{formatCurrency(s.valor)}</span>
+                        </div>
+                      )) : <p className="text-center text-xs text-gray-400 py-4 italic">Nenhuma venda registrada.</p>}
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3 mt-8">
+                    <button type="button" onClick={() => setIsEditModalOpen(false)} className="flex-1 bg-gray-100 p-3 rounded-md font-bold">Cancelar</button>
+                    <button type="submit" className="flex-1 bg-primary-600 text-white p-3 rounded-md font-bold">Salvar Alterações</button>
+                  </div>
+                </form>
+              </div>
             </motion.div>
           </motion.div>
         )}
@@ -746,25 +906,30 @@ function KanbanContent() {
                 }
               }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-t-[32px] md:rounded-lg p-6 w-full max-w-sm border-t-4 border-green-500 shadow-2xl h-[95vh] md:h-auto"
+              className="bg-white rounded-t-[32px] md:rounded-lg w-full max-w-sm border-t-4 border-green-500 shadow-2xl max-h-[95vh] flex flex-col overflow-hidden"
             >
-              <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-4 md:hidden" />
-              <h2 className="text-lg font-bold text-green-700 mb-4 flex items-center gap-2"><DollarSign size={20} /> Venda Concluída!</h2>
-              <form onSubmit={confirmSale} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Valor da Venda</label>
-                  <div className="relative">
-                    <span className="absolute left-4 top-4 text-2xl font-black text-green-600">R$</span>
-                    <input type="text" required autoFocus value={saleValueMasked} onChange={(e) => setSaleValueMasked(maskCurrency(e.target.value))} className="w-full border p-4 pl-14 rounded-md outline-none focus:ring-2 focus:ring-green-500 text-3xl font-black text-gray-800" placeholder="0,00" />
+              <div className="shrink-0 px-6 pt-6">
+                <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-4 md:hidden" />
+                <h2 className="text-lg font-bold text-green-700 mb-4 flex items-center gap-2"><DollarSign size={20} /> Venda Concluída!</h2>
+              </div>
+
+              <div className="overflow-y-auto flex-1 px-6 pb-6 custom-scrollbar">
+                <form onSubmit={confirmSale} className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Valor da Venda</label>
+                    <div className="relative">
+                      <span className="absolute left-4 top-4 text-2xl font-black text-green-600">R$</span>
+                      <input type="text" required autoFocus value={saleValueMasked} onChange={(e) => setSaleValueMasked(maskCurrency(e.target.value))} className="w-full border p-4 pl-14 rounded-md outline-none focus:ring-2 focus:ring-green-500 text-3xl font-black text-gray-800" placeholder="0,00" />
+                    </div>
                   </div>
-                </div>
-                <div>
-                  <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Data da Venda</label>
-                  <input type="date" required value={saleDate} onChange={(e) => setSaleDate(e.target.value)} className="w-full border p-3 rounded-md outline-none focus:ring-2 focus:ring-green-500 font-bold text-gray-700" />
-                </div>
-                <button type="submit" className="w-full bg-green-600 text-white p-4 rounded-md font-bold hover:bg-green-700 transition-all">Confirmar Venda</button>
-                <button type="button" onClick={() => { setIsSaleModalOpen(false); setPendingMove(null); loadLeads(true); }} className="w-full bg-gray-100 p-2 mt-2 rounded font-bold text-gray-500 text-xs">Cancelar movimento</button>
-              </form>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Data da Venda</label>
+                    <input type="date" required value={saleDate} onChange={(e) => setSaleDate(e.target.value)} className="w-full border p-3 rounded-md outline-none focus:ring-2 focus:ring-green-500 font-bold text-gray-700" />
+                  </div>
+                  <button type="submit" className="w-full bg-green-600 text-white p-4 rounded-md font-bold hover:bg-green-700 transition-all">Confirmar Venda</button>
+                  <button type="button" onClick={() => { setIsSaleModalOpen(false); setPendingMove(null); loadLeads(true); }} className="w-full bg-gray-100 p-2 mt-2 rounded font-bold text-gray-500 text-xs">Cancelar movimento</button>
+                </form>
+              </div>
             </motion.div>
           </motion.div>
         )}
@@ -795,14 +960,19 @@ function KanbanContent() {
                 }
               }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-t-[32px] md:rounded-lg p-6 w-full max-w-sm shadow-xl text-gray-900 border-t-4 border-orange-500 h-[95vh] md:h-auto"
+              className="bg-white rounded-t-[32px] md:rounded-lg w-full max-w-sm shadow-xl text-gray-900 border-t-4 border-orange-500 max-h-[95vh] flex flex-col overflow-hidden"
             >
-              <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-4 md:hidden" />
-              <h2 className="text-lg font-bold text-orange-600 mb-4 flex items-center gap-2"><AlertCircle size={20} /> Mover para trás?</h2>
-              <p className="text-sm text-gray-600 mb-6 font-medium">Deseja realmente retroceder este lead para uma etapa anterior do funil?</p>
-              <div className="flex gap-3">
-                <button onClick={confirmBackwardsMove} className="flex-1 bg-orange-600 text-white p-2 rounded font-bold hover:bg-orange-700 transition-all">Sim, mover</button>
-                <button onClick={() => { setIsConfirmModalOpen(false); setPendingMove(null); loadLeads(true); }} className="flex-1 bg-gray-100 p-2 rounded font-bold hover:bg-gray-200 transition-all">Não, cancelar</button>
+              <div className="shrink-0 px-6 pt-6">
+                <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-4 md:hidden" />
+                <h2 className="text-lg font-bold text-orange-600 mb-4 flex items-center gap-2"><AlertCircle size={20} /> Mover para trás?</h2>
+              </div>
+
+              <div className="overflow-y-auto flex-1 px-6 pb-6 custom-scrollbar">
+                <p className="text-sm text-gray-600 mb-6 font-medium">Deseja realmente retroceder este lead para uma etapa anterior do funil?</p>
+                <div className="flex gap-3">
+                  <button onClick={confirmBackwardsMove} className="flex-1 bg-orange-600 text-white p-2 rounded font-bold hover:bg-orange-700 transition-all">Sim, mover</button>
+                  <button onClick={() => { setIsConfirmModalOpen(false); setPendingMove(null); loadLeads(true); }} className="flex-1 bg-gray-100 p-2 rounded font-bold hover:bg-gray-200 transition-all">Não, cancelar</button>
+                </div>
               </div>
             </motion.div>
           </motion.div>

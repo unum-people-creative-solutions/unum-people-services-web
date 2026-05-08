@@ -1,8 +1,9 @@
 "use client";
 
-import { useAuthStore } from "@/store/authStore";
-import { User, Shield, Download, Trash2, Mail, Briefcase, Fingerprint } from "lucide-react";
 import { useState, useEffect } from "react";
+import Link from "next/link";
+import { useAuthStore } from "@/store/authStore";
+import { User, Mail, Shield, Building, Trash2, Save, X, FileText, ExternalLink } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -10,6 +11,7 @@ export default function SettingsPage() {
   const { session } = useAuthStore();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -18,95 +20,183 @@ export default function SettingsPage() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  if (!session) return null;
+  const handleExportData = () => {
+    setIsExporting(true);
+    try {
+      const dataToExport = {
+        timestamp: new Date().toISOString(),
+        user: {
+          name: session?.name,
+          email: session?.email,
+          role: session?.role,
+        },
+        tenant: {
+          id: session?.tenantId,
+          name: session?.tenantName || "Unum People Central",
+        },
+        notice: "Este arquivo contém seus dados pessoais e de vínculo corporativo armazenados em nossa plataforma, conforme garantido pela LGPD."
+      };
+
+      const blob = new Blob([JSON.stringify(dataToExport, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `meus-dados-unum-people-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Erro ao exportar dados:", error);
+      alert("Ocorreu um erro ao exportar seus dados. Tente novamente mais tarde.");
+    } finally {
+      setTimeout(() => setIsExporting(false), 1000);
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <Navbar selectedTenantId={session.tenantId} />
+    <div className="min-h-screen bg-gray-50 flex flex-col text-gray-900">
+      <Navbar />
 
-      <main className="p-6 max-w-4xl mx-auto space-y-8 w-full">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Configurações e Privacidade</h1>
-          <p className="text-gray-500">Gerencie seus dados e preferências de acordo com a LGPD.</p>
-        </div>
+      <main className="p-4 md:p-8 max-w-4xl mx-auto w-full">
+        <header className="mb-8">
+          <h1 className="text-2xl font-black uppercase tracking-tight flex items-center gap-3">
+            <Shield className="text-primary-600" size={28} /> Configurações e LGPD
+          </h1>
+          <p className="text-gray-500 text-sm font-medium">Gerencie suas informações pessoais, preferências e documentos legais.</p>
+        </header>
 
-        {/* Perfil do Usuário */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="p-6 border-b border-gray-100 bg-gray-50/50">
-            <div className="flex items-center gap-2">
-              <User className="w-5 h-5 text-primary-600" />
-              <h2 className="font-semibold text-gray-800">Seus Dados Pessoais</h2>
-            </div>
-          </div>
-          <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-gray-400 uppercase flex items-center gap-1">
-                <User className="w-3 h-3" /> Nome Completo
-              </label>
-              <p className="text-gray-900 font-medium">{session.name}</p>
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-gray-400 uppercase flex items-center gap-1">
-                <Mail className="w-3 h-3" /> E-mail
-              </label>
-              <p className="text-gray-900 font-medium">{session.email}</p>
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-gray-400 uppercase flex items-center gap-1">
-                <Fingerprint className="w-3 h-3" /> Tenant ID
-              </label>
-              <p className="text-gray-600 font-mono text-sm">{session.tenantId}</p>
-            </div>
-            <div className="space-y-1">
-              <label className="text-xs font-bold text-gray-400 uppercase flex items-center gap-1">
-                <Briefcase className="w-3 h-3" /> Cargo / Função
-              </label>
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800">
-                {session.role}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Direitos do Titular */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="p-6 border-b border-gray-100 bg-gray-50/50">
-            <div className="flex items-center gap-2">
-              <Shield className="w-5 h-5 text-primary-600" />
-              <h2 className="font-semibold text-gray-800">Gestão de Dados (Direitos LGPD)</h2>
-            </div>
-          </div>
-          <div className="p-6 space-y-6">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 border border-blue-50 bg-blue-50/30 rounded-lg">
+        <div className="grid grid-cols-1 gap-6">
+          {/* Perfil */}
+          <section className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <h2 className="text-sm font-black uppercase tracking-widest text-gray-400 mb-6 flex items-center gap-2">
+              <User size={16} /> Informações Pessoais
+            </h2>
+            
+            <div className="space-y-4">
               <div>
-                <h3 className="font-bold text-gray-900 flex items-center gap-2">
-                  <Download className="w-4 h-4 text-blue-600" /> Portabilidade de Dados
-                </h3>
-                <p className="text-sm text-gray-600">Baixe uma cópia de todos os seus leads e dados vinculados ao seu tenant em formato CSV.</p>
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Nome Completo</label>
+                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-100">
+                  <User size={18} className="text-gray-400" />
+                  <span className="font-bold text-gray-700">{session?.name || "N/A"}</span>
+                </div>
               </div>
-              <button 
-                className="px-4 py-2 bg-white text-blue-600 border border-blue-200 rounded-lg text-sm font-bold hover:bg-blue-50 transition-colors shrink-0"
-                onClick={() => alert("Funcionalidade de exportação em desenvolvimento.")}
+
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">E-mail de Acesso</label>
+                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-100 text-gray-400">
+                  <Mail size={18} />
+                  <span className="font-medium">{session?.email || "N/A"}</span>
+                </div>
+                <p className="text-[10px] text-gray-400 mt-1 italic">* O e-mail não pode ser alterado manualmente.</p>
+              </div>
+            </div>
+          </section>
+
+          {/* Tenant Info */}
+          <section className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <h2 className="text-sm font-black uppercase tracking-widest text-gray-400 mb-6 flex items-center gap-2">
+              <Building size={16} /> Vínculo Corporativo
+            </h2>
+            
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-4 bg-primary-50 rounded-xl border border-primary-100">
+                <div>
+                  <p className="text-[10px] font-black text-primary-400 uppercase">Seu Inquilino (Tenant)</p>
+                  <p className="font-black text-primary-900 text-lg leading-tight">{session?.tenantName || "Unum People Central"}</p>
+                </div>
+                <Building size={32} className="text-primary-200" />
+              </div>
+
+              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-100">
+                <Shield size={18} className="text-gray-400" />
+                <div>
+                  <span className="text-xs font-bold text-gray-500 block">Nível de Acesso</span>
+                  <span className="font-black text-gray-700 uppercase tracking-tighter">{session?.role || "Usuário"}</span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* LGPD e Documentos */}
+          <section className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <h2 className="text-sm font-black uppercase tracking-widest text-gray-400 mb-6 flex items-center gap-2">
+              <Shield size={16} /> LGPD & Transparência
+            </h2>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Link 
+                href="/terms" 
+                className="group flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100 hover:border-primary-200 hover:bg-primary-50 transition-all"
               >
-                Exportar CSV
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-white rounded-lg shadow-sm group-hover:bg-primary-100 transition-colors">
+                    <FileText size={20} className="text-gray-500 group-hover:text-primary-600" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-gray-700 group-hover:text-primary-900">Termos de Uso</p>
+                    <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">Contrato de serviço</p>
+                  </div>
+                </div>
+                <ExternalLink size={16} className="text-gray-300 group-hover:text-primary-400" />
+              </Link>
+
+              <Link 
+                href="/privacy" 
+                className="group flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100 hover:border-primary-200 hover:bg-primary-50 transition-all"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-white rounded-lg shadow-sm group-hover:bg-primary-100 transition-colors">
+                    <Shield size={20} className="text-gray-500 group-hover:text-primary-600" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-gray-700 group-hover:text-primary-900">Privacidade</p>
+                    <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">Tratamento de dados</p>
+                  </div>
+                </div>
+                <ExternalLink size={16} className="text-gray-300 group-hover:text-primary-400" />
+              </Link>
+
+              <button 
+                onClick={handleExportData}
+                disabled={isExporting}
+                className="md:col-span-2 group flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100 hover:border-primary-200 hover:bg-primary-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-white rounded-lg shadow-sm group-hover:bg-primary-100 transition-colors">
+                    <Save size={20} className={`text-gray-500 group-hover:text-primary-600 ${isExporting ? 'animate-bounce' : ''}`} />
+                  </div>
+                  <div className="text-left">
+                    <p className="font-bold text-gray-700 group-hover:text-primary-900">Exportar Meus Dados</p>
+                    <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">Download em formato JSON (Portabilidade)</p>
+                  </div>
+                </div>
+                {isExporting ? (
+                  <div className="flex items-center gap-2 text-primary-600 font-bold text-xs">
+                    Processando...
+                  </div>
+                ) : (
+                  <Save size={16} className="text-gray-300 group-hover:text-primary-400" />
+                )}
               </button>
             </div>
+          </section>
 
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 border border-red-50 bg-red-50/30 rounded-lg">
+          {/* Perigo */}
+          <section className="mt-4 pt-6 border-t border-gray-200">
+            <div className="bg-red-50 p-6 rounded-xl border border-red-100 flex flex-col md:flex-row items-center justify-between gap-4">
               <div>
-                <h3 className="font-bold text-red-900 flex items-center gap-2">
-                  <Trash2 className="w-4 h-4 text-red-600" /> Exclusão de Dados
-                </h3>
-                <p className="text-sm text-gray-600">Solicite a exclusão permanente de sua conta e de todos os dados associados a ela.</p>
+                <h3 className="text-red-800 font-black uppercase tracking-tight text-lg">Zona de Perigo</h3>
+                <p className="text-red-600 text-xs font-medium">Ao excluir sua conta, você perderá acesso imediato ao sistema.</p>
               </div>
               <button 
                 onClick={() => setShowDeleteModal(true)}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-bold hover:bg-red-700 transition-colors shrink-0 shadow-sm"
+                className="w-full md:w-auto px-6 py-3 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 transition-all shadow-lg shadow-red-200 flex items-center justify-center gap-2"
               >
-                Excluir Minha Conta
+                <Trash2 size={18} /> Solicitar Exclusão
               </button>
             </div>
-          </div>
+          </section>
         </div>
       </main>
 
@@ -134,31 +224,36 @@ export default function SettingsPage() {
                 }
               }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-t-[32px] md:rounded-xl max-w-md w-full p-6 shadow-2xl h-[95vh] md:h-auto"
+              className="bg-white rounded-t-[32px] md:rounded-xl max-w-md w-full shadow-2xl max-h-[95vh] flex flex-col overflow-hidden"
             >
-              <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-4 md:hidden" />
-              <div className="flex items-center gap-3 text-red-600 mb-4">
-                <div className="bg-red-100 p-2 rounded-full">
-                  <Trash2 className="w-6 h-6" />
+              <div className="shrink-0 px-6 pt-6">
+                <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-4 md:hidden" />
+                <div className="flex items-center gap-3 text-red-600 mb-4">
+                  <div className="bg-red-100 p-2 rounded-full">
+                    <Trash2 className="w-6 h-6" />
+                  </div>
+                  <h3 className="text-xl font-bold">Confirmar Exclusão?</h3>
                 </div>
-                <h3 className="text-xl font-bold">Confirmar Exclusão?</h3>
               </div>
-              <p className="text-gray-600 mb-6 leading-relaxed">
-                Esta ação é irreversível. Seus dados de acesso serão removidos e você perderá o vínculo com seu tenant. Se você for o único administrador, os dados do tenant também poderão ser afetados.
-              </p>
-              <div className="flex gap-3">
-                <button 
-                  onClick={() => setShowDeleteModal(false)}
-                  className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-bold hover:bg-gray-200 transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button 
-                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 transition-colors shadow-md"
-                  onClick={() => alert("Solicitação de exclusão enviada ao administrador.")}
-                >
-                  Sim, Excluir
-                </button>
+
+              <div className="overflow-y-auto flex-1 px-6 pb-6 custom-scrollbar">
+                <p className="text-gray-600 mb-6 leading-relaxed">
+                  Esta ação é irreversível. Seus dados de acesso serão removidos e você perderá o vínculo com seu tenant. Se você for o único administrador, os dados do tenant também poderão ser afetados.
+                </p>
+                <div className="flex gap-3">
+                  <button 
+                    onClick={() => setShowDeleteModal(false)}
+                    className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-bold hover:bg-gray-200 transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button 
+                    className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 transition-all shadow-md"
+                    onClick={() => alert("Solicitação de exclusão enviada ao administrador.")}
+                  >
+                    Sim, Excluir
+                  </button>
+                </div>
               </div>
             </motion.div>
           </motion.div>

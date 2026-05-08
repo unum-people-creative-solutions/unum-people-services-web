@@ -326,82 +326,87 @@ export default function TenantsPage() {
                 }
               }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-t-[32px] md:rounded-lg p-6 w-full max-w-md shadow-xl text-gray-900 overflow-y-auto h-[95vh] md:h-auto md:max-h-[90vh]"
+              className="bg-white rounded-t-[32px] md:rounded-lg w-full max-w-md shadow-xl text-gray-900 max-h-[95vh] flex flex-col overflow-hidden"
             >
-              <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-4 md:hidden" />
-              <div className="flex justify-between items-center mb-6 border-b pb-4">
-                <h2 className="text-lg font-bold">Cadastrar Novo Inquilino</h2>
-                <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600">
-                  <X size={20} />
-                </button>
+              <div className="shrink-0 px-6 pt-6">
+                <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-4 md:hidden" />
+                <div className="flex justify-between items-center mb-6 border-b pb-4">
+                  <h2 className="text-lg font-bold">Cadastrar Novo Inquilino</h2>
+                  <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600">
+                    <X size={20} />
+                  </button>
+                </div>
               </div>
-              <form onSubmit={handleCreate} className="space-y-4">
-                <div className="bg-gray-50 p-4 rounded-md border border-gray-100 space-y-4">
-                  <h3 className="text-xs font-black uppercase tracking-widest text-gray-400 mb-2">Dados da Empresa</h3>
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-1 flex items-center gap-2"><Building size={14}/> Nome do Negócio</label>
-                    <input type="text" required value={newTenant.nome_negocio}
-                      onChange={(e) => setNewTenant({...newTenant, nome_negocio: e.target.value})}
-                      className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-primary-500" 
-                      placeholder="Ex: Clínica Sorriso" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-1 flex items-center gap-2"><Briefcase size={14}/> Nicho</label>
-                    <select value={newTenant.nicho}
-                      onChange={(e) => setNewTenant({...newTenant, nicho: e.target.value})}
-                      className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-primary-500 bg-white font-bold">
-                      <option value="MEDICINA">Medicina / Clínicas</option>
-                      <option value="ODONTOLOGIA">Odontologia</option>
-                      <option value="ESTETICA">Estética / Saúde</option>
-                      <option value="PSICOLOGIA">Psicologia</option>
-                      <option value="DIREITO">Direito / Advogados</option>
-                      <option value="IMOBILIARIO">Imobiliário / Corretores</option>
-                      <option value="FITNESS">Fitness / Academias</option>
-                      <option value="EDUCACAO">Educação / Cursos</option>
-                      <option value="ENERGIA_SOLAR">Energia Solar</option>
-                      <option value="SERVICOS_PROFISSIONAIS">Serviços Profissionais</option>
-                      <option value="VAREJO">Varejo / Comércio Local</option>
-                      <option value="OUTRO">Outro</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-1 flex items-center gap-2"><Hash size={14}/> ID Google Ads</label>
-                    <input type="text" required value={newTenant.google_ads_customer_id}
-                      onChange={(e) => setNewTenant({...newTenant, google_ads_customer_id: e.target.value})}
-                      className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-primary-500" 
-                      placeholder="000-000-0000" />
-                  </div>
-                </div>
 
-                <div className="bg-primary-50 p-4 rounded-md border border-primary-100 space-y-4">
-                  <h3 className="text-xs font-black uppercase tracking-widest text-primary-400 mb-2">Usuário Administrador</h3>
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-1 flex items-center gap-2"><User size={14}/> Nome Completo</label>
-                    <input type="text" required value={newTenant.nome_admin}
-                      onChange={(e) => setNewTenant({...newTenant, nome_admin: e.target.value})}
-                      className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-primary-500" 
-                      placeholder="Nome da pessoa" />
+              <div className="overflow-y-auto flex-1 px-6 pb-6 custom-scrollbar">
+                <form onSubmit={handleCreate} className="space-y-4">
+                  <div className="bg-gray-50 p-4 rounded-md border border-gray-100 space-y-4">
+                    <h3 className="text-xs font-black uppercase tracking-widest text-gray-400 mb-2">Dados da Empresa</h3>
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-1 flex items-center gap-2"><Building size={14}/> Nome do Negócio</label>
+                      <input type="text" required value={newTenant.nome_negocio}
+                        onChange={(e) => setNewTenant({...newTenant, nome_negocio: e.target.value})}
+                        className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-primary-500" 
+                        placeholder="Ex: Clínica Sorriso" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-1 flex items-center gap-2"><Briefcase size={14}/> Nicho</label>
+                      <select value={newTenant.nicho}
+                        onChange={(e) => setNewTenant({...newTenant, nicho: e.target.value})}
+                        className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-primary-500 bg-white font-bold">
+                        <option value="MEDICINA">Medicina / Clínicas</option>
+                        <option value="ODONTOLOGIA">Odontologia</option>
+                        <option value="ESTETICA">Estética / Saúde</option>
+                        <option value="PSICOLOGIA">Psicologia</option>
+                        <option value="DIREITO">Direito / Advogados</option>
+                        <option value="IMOBILIARIO">Imobiliário / Corretores</option>
+                        <option value="FITNESS">Fitness / Academias</option>
+                        <option value="EDUCACAO">Educação / Cursos</option>
+                        <option value="ENERGIA_SOLAR">Energia Solar</option>
+                        <option value="SERVICOS_PROFISSIONAIS">Serviços Profissionais</option>
+                        <option value="VAREJO">Varejo / Comércio Local</option>
+                        <option value="OUTRO">Outro</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-1 flex items-center gap-2"><Hash size={14}/> ID Google Ads</label>
+                      <input type="text" required value={newTenant.google_ads_customer_id}
+                        onChange={(e) => setNewTenant({...newTenant, google_ads_customer_id: e.target.value})}
+                        className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-primary-500" 
+                        placeholder="000-000-0000" />
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-1 flex items-center gap-2"><Mail size={14}/> E-mail de Acesso</label>
-                    <input type="email" required value={newTenant.email_contato}
-                      onChange={(e) => setNewTenant({...newTenant, email_contato: e.target.value})}
-                      className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-primary-500" 
-                      placeholder="email@exemplo.com" />
-                  </div>
-                </div>
 
-                <div className="flex items-center gap-2 py-2 bg-purple-50 p-2 rounded-md">
-                  <input type="checkbox" id="mcc" checked={newTenant.use_mcc_auth}
-                    onChange={(e) => setNewTenant({...newTenant, use_mcc_auth: e.target.checked})} 
-                    className="w-4 h-4 text-primary-600 rounded" />
-                  <label htmlFor="mcc" className="text-xs text-purple-900 font-bold cursor-pointer">Usar minha MCC de Gestor</label>
-                </div>
-                
-                <button type="submit" className="w-full bg-primary-600 text-white p-3 rounded-md font-bold hover:bg-primary-700 transition-colors shadow-lg">
-                  Ativar Inquilino e Criar Admin
-                </button>
-              </form>
+                  <div className="bg-primary-50 p-4 rounded-md border border-primary-100 space-y-4">
+                    <h3 className="text-xs font-black uppercase tracking-widest text-primary-400 mb-2">Usuário Administrador</h3>
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-1 flex items-center gap-2"><User size={14}/> Nome Completo</label>
+                      <input type="text" required value={newTenant.nome_admin}
+                        onChange={(e) => setNewTenant({...newTenant, nome_admin: e.target.value})}
+                        className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-primary-500" 
+                        placeholder="Nome da pessoa" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold text-gray-700 mb-1 flex items-center gap-2"><Mail size={14}/> E-mail de Acesso</label>
+                      <input type="email" required value={newTenant.email_contato}
+                        onChange={(e) => setNewTenant({...newTenant, email_contato: e.target.value})}
+                        className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-primary-500" 
+                        placeholder="email@exemplo.com" />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 py-2 bg-purple-50 p-2 rounded-md">
+                    <input type="checkbox" id="mcc" checked={newTenant.use_mcc_auth}
+                      onChange={(e) => setNewTenant({...newTenant, use_mcc_auth: e.target.checked})} 
+                      className="w-4 h-4 text-primary-600 rounded" />
+                    <label htmlFor="mcc" className="text-xs text-purple-900 font-bold cursor-pointer">Usar minha MCC de Gestor</label>
+                  </div>
+                  
+                  <button type="submit" className="w-full bg-primary-600 text-white p-3 rounded-md font-bold hover:bg-primary-700 transition-colors shadow-lg">
+                    Ativar Inquilino e Criar Admin
+                  </button>
+                </form>
+              </div>
             </motion.div>
           </motion.div>
         )}
@@ -431,33 +436,38 @@ export default function TenantsPage() {
                 }
               }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-t-[32px] md:rounded-lg p-6 w-full max-w-md shadow-xl text-gray-900 h-[95vh] md:h-auto"
+              className="bg-white rounded-t-[32px] md:rounded-lg w-full max-w-md shadow-xl text-gray-900 max-h-[95vh] flex flex-col overflow-hidden"
             >
-              <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-4 md:hidden" />
-              <div className="flex justify-between items-center mb-6 border-b pb-4">
-                <h2 className="text-lg font-bold flex items-center gap-2 text-primary-700"><UserPlus size={20} /> Convidar Usuário</h2>
-                <button onClick={() => setIsUserModalOpen(false)} className="text-gray-400 hover:text-gray-600">
-                  <X size={20} />
-                </button>
+              <div className="shrink-0 px-6 pt-6">
+                <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-4 md:hidden" />
+                <div className="flex justify-between items-center mb-6 border-b pb-4">
+                  <h2 className="text-lg font-bold flex items-center gap-2 text-primary-700"><UserPlus size={20} /> Convidar Usuário</h2>
+                  <button onClick={() => setIsUserModalOpen(false)} className="text-gray-400 hover:text-gray-600">
+                    <X size={20} />
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500 mb-6">O usuário será vinculado ao tenant <strong>{tenants.find(t => t.id === newUser.tenant_id)?.nome_negocio}</strong>.</p>
               </div>
-              <p className="text-xs text-gray-500 mb-6">O usuário será vinculado ao tenant <strong>{tenants.find(t => t.id === newUser.tenant_id)?.nome_negocio}</strong>.</p>
-              <form onSubmit={handleCreateUser} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1 flex items-center gap-2"><User size={14}/> Nome Completo</label>
-                  <input type="text" required value={newUser.name}
-                    onChange={(e) => setNewUser({...newUser, name: e.target.value})}
-                    className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-primary-500" />
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1 flex items-center gap-2"><Mail size={14}/> E-mail</label>
-                  <input type="email" required value={newUser.email}
-                    onChange={(e) => setNewUser({...newUser, email: e.target.value})}
-                    className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-primary-500" />
-                </div>
-                <button type="submit" className="w-full bg-primary-600 text-white p-3 rounded-md font-bold hover:bg-primary-700 transition-colors shadow-lg">
-                  Convidar e Criar Usuário
-                </button>
-              </form>
+
+              <div className="overflow-y-auto flex-1 px-6 pb-6 custom-scrollbar">
+                <form onSubmit={handleCreateUser} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1 flex items-center gap-2"><User size={14}/> Nome Completo</label>
+                    <input type="text" required value={newUser.name}
+                      onChange={(e) => setNewUser({...newUser, name: e.target.value})}
+                      className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-primary-500" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1 flex items-center gap-2"><Mail size={14}/> E-mail</label>
+                    <input type="email" required value={newUser.email}
+                      onChange={(e) => setNewUser({...newUser, email: e.target.value})}
+                      className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-primary-500" />
+                  </div>
+                  <button type="submit" className="w-full bg-primary-600 text-white p-3 rounded-md font-bold hover:bg-primary-700 transition-colors shadow-lg">
+                    Convidar e Criar Usuário
+                  </button>
+                </form>
+              </div>
             </motion.div>
           </motion.div>
         )}
