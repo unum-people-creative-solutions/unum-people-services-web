@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ShieldCheck, ArrowRight, ExternalLink } from "lucide-react";
+import { motion } from "framer-motion";
 
 interface TermsModalProps {
   email: string;
@@ -11,6 +12,14 @@ interface TermsModalProps {
 
 export default function TermsModal({ email, onAccept }: TermsModalProps) {
   const [loading, setLoading] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const handleAccept = () => {
     setLoading(true);
@@ -23,8 +32,28 @@ export default function TermsModal({ email, onAccept }: TermsModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-gray-900/80 backdrop-blur-md">
-      <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-gray-100 overflow-hidden animate-in zoom-in-95 duration-300">
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[200] flex items-end md:items-center justify-center md:p-4 bg-gray-900/80 backdrop-blur-md"
+    >
+      <motion.div 
+        initial={isMobile ? { y: "100%" } : { scale: 0.9, opacity: 0 }}
+        animate={isMobile ? { y: 0 } : { scale: 1, opacity: 1 }}
+        exit={isMobile ? { y: "100%" } : { scale: 0.9, opacity: 0 }}
+        transition={isMobile ? { type: "spring", damping: 25, stiffness: 300 } : { duration: 0.3 }}
+        drag={isMobile ? "y" : false}
+        dragConstraints={{ top: 0, bottom: 0 }}
+        dragElastic={0.2}
+        onDragEnd={(_, info) => {
+          if (isMobile && info.offset.y > 150) {
+            handleAccept();
+          }
+        }}
+        className="bg-white rounded-t-[32px] md:rounded-2xl max-w-lg w-full shadow-2xl border border-gray-100 overflow-hidden h-[95vh] md:h-auto"
+      >
+        <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-4 md:hidden mt-4" />
         <div className="bg-primary-600 p-8 text-white relative overflow-hidden">
           <ShieldCheck className="w-24 h-24 absolute -right-4 -bottom-4 opacity-10 rotate-12" />
           <h2 className="text-2xl font-bold mb-2 relative z-10">Atualização de Privacidade</h2>
@@ -76,7 +105,7 @@ export default function TermsModal({ email, onAccept }: TermsModalProps) {
             </button>
           </div>
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }

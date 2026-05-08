@@ -17,6 +17,8 @@ Frontend principal do SaaS CRM, permitindo que inquilinos gerenciem leads e admi
 ## 🛠️ Padrões de Desenvolvimento & Segurança
 - **Estilização**: Tailwind CSS com foco em responsividade e UX premium.
 - **Estado**: Zustand ou React Context para gerenciamento do Kanban.
+- **Bibliotecas**: SEMPRE preferir bibliotecas reconhecidas (ex: Framer Motion, Radix UI) in vez de implementações manuais para componentes React complexos.
+- **Análise Pré-Implementação**: Antes de realizar qualquer alteração, o agente DEVE analisar as funcionalidades existentes no componente/página para garantir que nenhuma característica ou botão seja removido inadvertidamente. O objetivo é a evolução contínua sem regressões.
 - **Sincronização Otimista**: Atualizar a UI do Kanban imediatamente e tratar erros de API em background.
 - **Segurança**: Jamais expor segredos da AWS ou Google no lado do cliente. Utilizar `NEXT_PUBLIC_` apenas para chaves públicas.
 

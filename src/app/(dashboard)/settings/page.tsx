@@ -2,12 +2,21 @@
 
 import { useAuthStore } from "@/store/authStore";
 import { User, Shield, Download, Trash2, Mail, Briefcase, Fingerprint } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function SettingsPage() {
   const { session } = useAuthStore();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   if (!session) return null;
 
@@ -102,35 +111,59 @@ export default function SettingsPage() {
       </main>
 
       {/* Modal de Confirmação de Exclusão */}
-      {showDeleteModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl animate-in zoom-in-95 duration-200">
-            <div className="flex items-center gap-3 text-red-600 mb-4">
-              <div className="bg-red-100 p-2 rounded-full">
-                <Trash2 className="w-6 h-6" />
+      <AnimatePresence>
+        {showDeleteModal && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowDeleteModal(false)}
+            className="fixed inset-0 z-[100] flex items-end md:items-center justify-center md:p-4 bg-black/50 backdrop-blur-sm"
+          >
+            <motion.div 
+              initial={isMobile ? { y: "100%" } : { scale: 0.9, opacity: 0 }}
+              animate={isMobile ? { y: 0 } : { scale: 1, opacity: 1 }}
+              exit={isMobile ? { y: "100%" } : { scale: 0.9, opacity: 0 }}
+              transition={isMobile ? { type: "spring", damping: 25, stiffness: 300 } : { duration: 0.2 }}
+              drag={isMobile ? "y" : false}
+              dragConstraints={{ top: 0, bottom: 0 }}
+              dragElastic={0.2}
+              onDragEnd={(_, info) => {
+                if (isMobile && info.offset.y > 150) {
+                  setShowDeleteModal(false);
+                }
+              }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-t-[32px] md:rounded-xl max-w-md w-full p-6 shadow-2xl h-[95vh] md:h-auto"
+            >
+              <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-4 md:hidden" />
+              <div className="flex items-center gap-3 text-red-600 mb-4">
+                <div className="bg-red-100 p-2 rounded-full">
+                  <Trash2 className="w-6 h-6" />
+                </div>
+                <h3 className="text-xl font-bold">Confirmar Exclusão?</h3>
               </div>
-              <h3 className="text-xl font-bold">Confirmar Exclusão?</h3>
-            </div>
-            <p className="text-gray-600 mb-6 leading-relaxed">
-              Esta ação é irreversível. Seus dados de acesso serão removidos e você perderá o vínculo com seu tenant. Se você for o único administrador, os dados do tenant também poderão ser afetados.
-            </p>
-            <div className="flex gap-3">
-              <button 
-                onClick={() => setShowDeleteModal(false)}
-                className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-bold hover:bg-gray-200 transition-colors"
-              >
-                Cancelar
-              </button>
-              <button 
-                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 transition-colors shadow-md"
-                onClick={() => alert("Solicitação de exclusão enviada ao administrador.")}
-              >
-                Sim, Excluir
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+              <p className="text-gray-600 mb-6 leading-relaxed">
+                Esta ação é irreversível. Seus dados de acesso serão removidos e você perderá o vínculo com seu tenant. Se você for o único administrador, os dados do tenant também poderão ser afetados.
+              </p>
+              <div className="flex gap-3">
+                <button 
+                  onClick={() => setShowDeleteModal(false)}
+                  className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-bold hover:bg-gray-200 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 transition-colors shadow-md"
+                  onClick={() => alert("Solicitação de exclusão enviada ao administrador.")}
+                >
+                  Sim, Excluir
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
