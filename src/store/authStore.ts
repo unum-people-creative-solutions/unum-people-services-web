@@ -5,6 +5,7 @@ interface UserSession {
   email: string;
   name: string;
   tenantId: string;
+  tenantName?: string;
   role: string;
   token: string;
 }
