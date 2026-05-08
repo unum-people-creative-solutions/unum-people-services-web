@@ -7,6 +7,7 @@ import { Plus, X, Building, Mail, Briefcase, Hash, LayoutGrid, Search, UserPlus,
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Navbar from "@/components/Navbar";
+import { motion, AnimatePresence } from "framer-motion";
 
 // Sub-componente para exibição segura da API Key
 function ApiKeyCell({ apiKey }: { apiKey: string }) {
@@ -68,6 +69,15 @@ export default function TenantsPage() {
   
   const { session, logout } = useAuthStore();
   const router = useRouter();
+
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   useEffect(() => {
     // Aguarda a hidratação e a presença da sessão para decidir o redirecionamento
@@ -144,7 +154,7 @@ export default function TenantsPage() {
         newLeadLabel="Cadastrar Inquilino"
       />
 
-      <main className="p-8 max-w-7xl mx-auto w-full">
+      <main className="p-4 md:p-8 max-w-7xl mx-auto w-full">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
           <div>
             <h1 className="text-2xl font-black text-gray-900 flex items-center gap-3 uppercase tracking-tight">
@@ -171,7 +181,8 @@ export default function TenantsPage() {
           )}
         </div>
 
-        <div className="bg-white rounded-lg shadow overflow-hidden">
+        {/* Desktop View: Table */}
+        <div className="bg-white rounded-lg shadow overflow-hidden hidden md:block border border-gray-200">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
@@ -235,120 +246,222 @@ export default function TenantsPage() {
             </tbody>
           </table>
         </div>
+
+        {/* Mobile View: Cards */}
+        <div className="grid grid-cols-1 gap-4 md:hidden">
+          {filteredTenants.length > 0 ? (
+            filteredTenants.map((t) => (
+              <div key={t.id} className="bg-white rounded-lg shadow border border-gray-200 overflow-hidden flex flex-col">
+                <div className="p-4 border-b border-gray-100 flex justify-between items-start">
+                  <div>
+                    <div className="font-bold text-gray-900">{t.nome_negocio}</div>
+                    <div className="text-[10px] text-gray-400 font-mono">{t.id}</div>
+                  </div>
+                  <div className="flex flex-col items-end gap-1">
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${t.status === 'ATIVO' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                      {t.status}
+                    </span>
+                    <span className="bg-blue-100 text-blue-800 text-[10px] px-2 py-0.5 rounded-full font-bold">{t.nicho}</span>
+                  </div>
+                </div>
+                
+                <div className="p-4 space-y-3 flex-1">
+                  <div>
+                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Contato e Ads</div>
+                    <div className="text-sm text-gray-600">{t.email_contato}</div>
+                    <div className="text-xs font-bold text-primary-600">{t.google_ads_customer_id || "Não configurado"}</div>
+                  </div>
+                  
+                  <div>
+                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Integração API</div>
+                    <ApiKeyCell apiKey={t.api_key} />
+                  </div>
+                </div>
+
+                <div className="bg-gray-50 p-4 flex gap-2">
+                  <button 
+                    onClick={() => { setNewUser({ ...newUser, tenant_id: t.id }); setIsUserModalOpen(true); }}
+                    className="flex-1 bg-white border border-gray-200 text-gray-700 px-3 py-2 rounded-md hover:bg-gray-50 transition-colors font-bold text-xs flex items-center justify-center gap-2"
+                  >
+                    <UserPlus size={14} /> Usuário
+                  </button>
+                  <button 
+                    onClick={() => router.push(`/kanban?tenant_id=${t.id}`)}
+                    className="flex-[2] bg-primary-600 text-white px-3 py-2 rounded-md hover:bg-primary-700 transition-colors font-bold text-xs flex items-center justify-center gap-2 shadow-sm"
+                  >
+                    <LayoutGrid size={14} /> Acessar CRM
+                  </button>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="bg-white p-10 text-center text-gray-400 text-sm font-medium rounded-lg shadow border border-gray-200">
+              Nenhum inquilino encontrado para sua busca.
+            </div>
+          )}
+        </div>
       </main>
 
       {/* Modal Novo Inquilino */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md shadow-xl text-gray-900 overflow-y-auto max-h-[90vh]">
-            <div className="flex justify-between items-center mb-6 border-b pb-4">
-              <h2 className="text-lg font-bold">Cadastrar Novo Inquilino</h2>
-              <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600">
-                <X size={20} />
-              </button>
-            </div>
-            <form onSubmit={handleCreate} className="space-y-4">
-              <div className="bg-gray-50 p-4 rounded-md border border-gray-100 space-y-4">
-                <h3 className="text-xs font-black uppercase tracking-widest text-gray-400 mb-2">Dados da Empresa</h3>
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1 flex items-center gap-2"><Building size={14}/> Nome do Negócio</label>
-                  <input type="text" required value={newTenant.nome_negocio}
-                    onChange={(e) => setNewTenant({...newTenant, nome_negocio: e.target.value})}
-                    className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-primary-500" 
-                    placeholder="Ex: Clínica Sorriso" />
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1 flex items-center gap-2"><Briefcase size={14}/> Nicho</label>
-                  <select value={newTenant.nicho}
-                    onChange={(e) => setNewTenant({...newTenant, nicho: e.target.value})}
-                    className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-primary-500 bg-white font-bold">
-                    <option value="MEDICINA">Medicina / Clínicas</option>
-                    <option value="ODONTOLOGIA">Odontologia</option>
-                    <option value="ESTETICA">Estética / Saúde</option>
-                    <option value="PSICOLOGIA">Psicologia</option>
-                    <option value="DIREITO">Direito / Advogados</option>
-                    <option value="IMOBILIARIO">Imobiliário / Corretores</option>
-                    <option value="FITNESS">Fitness / Academias</option>
-                    <option value="EDUCACAO">Educação / Cursos</option>
-                    <option value="ENERGIA_SOLAR">Energia Solar</option>
-                    <option value="SERVICOS_PROFISSIONAIS">Serviços Profissionais</option>
-                    <option value="VAREJO">Varejo / Comércio Local</option>
-                    <option value="OUTRO">Outro</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1 flex items-center gap-2"><Hash size={14}/> ID Google Ads</label>
-                  <input type="text" required value={newTenant.google_ads_customer_id}
-                    onChange={(e) => setNewTenant({...newTenant, google_ads_customer_id: e.target.value})}
-                    className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-primary-500" 
-                    placeholder="000-000-0000" />
-                </div>
+      <AnimatePresence>
+        {isModalOpen && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setIsModalOpen(false)}
+            className="fixed inset-0 bg-black/50 flex items-end md:items-center justify-center md:p-4 z-50"
+          >
+            <motion.div 
+              initial={isMobile ? { y: "100%" } : { scale: 0.9, opacity: 0 }}
+              animate={isMobile ? { y: 0 } : { scale: 1, opacity: 1 }}
+              exit={isMobile ? { y: "100%" } : { scale: 0.9, opacity: 0 }}
+              transition={isMobile ? { type: "spring", damping: 25, stiffness: 300 } : { duration: 0.2 }}
+              drag={isMobile ? "y" : false}
+              dragConstraints={{ top: 0, bottom: 0 }}
+              dragElastic={0.2}
+              onDragEnd={(_, info) => {
+                if (isMobile && info.offset.y > 150) {
+                  setIsModalOpen(false);
+                }
+              }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-t-[32px] md:rounded-lg p-6 w-full max-w-md shadow-xl text-gray-900 overflow-y-auto h-[95vh] md:h-auto md:max-h-[90vh]"
+            >
+              <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-4 md:hidden" />
+              <div className="flex justify-between items-center mb-6 border-b pb-4">
+                <h2 className="text-lg font-bold">Cadastrar Novo Inquilino</h2>
+                <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600">
+                  <X size={20} />
+                </button>
               </div>
+              <form onSubmit={handleCreate} className="space-y-4">
+                <div className="bg-gray-50 p-4 rounded-md border border-gray-100 space-y-4">
+                  <h3 className="text-xs font-black uppercase tracking-widest text-gray-400 mb-2">Dados da Empresa</h3>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1 flex items-center gap-2"><Building size={14}/> Nome do Negócio</label>
+                    <input type="text" required value={newTenant.nome_negocio}
+                      onChange={(e) => setNewTenant({...newTenant, nome_negocio: e.target.value})}
+                      className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-primary-500" 
+                      placeholder="Ex: Clínica Sorriso" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1 flex items-center gap-2"><Briefcase size={14}/> Nicho</label>
+                    <select value={newTenant.nicho}
+                      onChange={(e) => setNewTenant({...newTenant, nicho: e.target.value})}
+                      className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-primary-500 bg-white font-bold">
+                      <option value="MEDICINA">Medicina / Clínicas</option>
+                      <option value="ODONTOLOGIA">Odontologia</option>
+                      <option value="ESTETICA">Estética / Saúde</option>
+                      <option value="PSICOLOGIA">Psicologia</option>
+                      <option value="DIREITO">Direito / Advogados</option>
+                      <option value="IMOBILIARIO">Imobiliário / Corretores</option>
+                      <option value="FITNESS">Fitness / Academias</option>
+                      <option value="EDUCACAO">Educação / Cursos</option>
+                      <option value="ENERGIA_SOLAR">Energia Solar</option>
+                      <option value="SERVICOS_PROFISSIONAIS">Serviços Profissionais</option>
+                      <option value="VAREJO">Varejo / Comércio Local</option>
+                      <option value="OUTRO">Outro</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1 flex items-center gap-2"><Hash size={14}/> ID Google Ads</label>
+                    <input type="text" required value={newTenant.google_ads_customer_id}
+                      onChange={(e) => setNewTenant({...newTenant, google_ads_customer_id: e.target.value})}
+                      className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-primary-500" 
+                      placeholder="000-000-0000" />
+                  </div>
+                </div>
 
-              <div className="bg-primary-50 p-4 rounded-md border border-primary-100 space-y-4">
-                <h3 className="text-xs font-black uppercase tracking-widest text-primary-400 mb-2">Usuário Administrador</h3>
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1 flex items-center gap-2"><User size={14}/> Nome Completo</label>
-                  <input type="text" required value={newTenant.nome_admin}
-                    onChange={(e) => setNewTenant({...newTenant, nome_admin: e.target.value})}
-                    className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-primary-500" 
-                    placeholder="Nome da pessoa" />
+                <div className="bg-primary-50 p-4 rounded-md border border-primary-100 space-y-4">
+                  <h3 className="text-xs font-black uppercase tracking-widest text-primary-400 mb-2">Usuário Administrador</h3>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1 flex items-center gap-2"><User size={14}/> Nome Completo</label>
+                    <input type="text" required value={newTenant.nome_admin}
+                      onChange={(e) => setNewTenant({...newTenant, nome_admin: e.target.value})}
+                      className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-primary-500" 
+                      placeholder="Nome da pessoa" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1 flex items-center gap-2"><Mail size={14}/> E-mail de Acesso</label>
+                    <input type="email" required value={newTenant.email_contato}
+                      onChange={(e) => setNewTenant({...newTenant, email_contato: e.target.value})}
+                      className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-primary-500" 
+                      placeholder="email@exemplo.com" />
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-bold text-gray-700 mb-1 flex items-center gap-2"><Mail size={14}/> E-mail de Acesso</label>
-                  <input type="email" required value={newTenant.email_contato}
-                    onChange={(e) => setNewTenant({...newTenant, email_contato: e.target.value})}
-                    className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-primary-500" 
-                    placeholder="email@exemplo.com" />
-                </div>
-              </div>
 
-              <div className="flex items-center gap-2 py-2 bg-purple-50 p-2 rounded-md">
-                <input type="checkbox" id="mcc" checked={newTenant.use_mcc_auth}
-                  onChange={(e) => setNewTenant({...newTenant, use_mcc_auth: e.target.checked})} 
-                  className="w-4 h-4 text-primary-600 rounded" />
-                <label htmlFor="mcc" className="text-xs text-purple-900 font-bold cursor-pointer">Usar minha MCC de Gestor</label>
-              </div>
-              
-              <button type="submit" className="w-full bg-primary-600 text-white p-3 rounded-md font-bold hover:bg-primary-700 transition-colors shadow-lg">
-                Ativar Inquilino e Criar Admin
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
+                <div className="flex items-center gap-2 py-2 bg-purple-50 p-2 rounded-md">
+                  <input type="checkbox" id="mcc" checked={newTenant.use_mcc_auth}
+                    onChange={(e) => setNewTenant({...newTenant, use_mcc_auth: e.target.checked})} 
+                    className="w-4 h-4 text-primary-600 rounded" />
+                  <label htmlFor="mcc" className="text-xs text-purple-900 font-bold cursor-pointer">Usar minha MCC de Gestor</label>
+                </div>
+                
+                <button type="submit" className="w-full bg-primary-600 text-white p-3 rounded-md font-bold hover:bg-primary-700 transition-colors shadow-lg">
+                  Ativar Inquilino e Criar Admin
+                </button>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Modal Novo Usuário para Tenant Existente */}
-      {isUserModalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md shadow-xl text-gray-900">
-            <div className="flex justify-between items-center mb-6 border-b pb-4">
-              <h2 className="text-lg font-bold flex items-center gap-2 text-primary-700"><UserPlus size={20} /> Convidar Usuário</h2>
-              <button onClick={() => setIsUserModalOpen(false)} className="text-gray-400 hover:text-gray-600">
-                <X size={20} />
-              </button>
-            </div>
-            <p className="text-xs text-gray-500 mb-6">O usuário será vinculado ao tenant <strong>{tenants.find(t => t.id === newUser.tenant_id)?.nome_negocio}</strong>.</p>
-            <form onSubmit={handleCreateUser} className="space-y-4">
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1 flex items-center gap-2"><User size={14}/> Nome Completo</label>
-                <input type="text" required value={newUser.name}
-                  onChange={(e) => setNewUser({...newUser, name: e.target.value})}
-                  className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-primary-500" />
+      <AnimatePresence>
+        {isUserModalOpen && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setIsUserModalOpen(false)}
+            className="fixed inset-0 bg-black/50 flex items-end md:items-center justify-center md:p-4 z-50"
+          >
+            <motion.div 
+              initial={isMobile ? { y: "100%" } : { scale: 0.9, opacity: 0 }}
+              animate={isMobile ? { y: 0 } : { scale: 1, opacity: 1 }}
+              exit={isMobile ? { y: "100%" } : { scale: 0.9, opacity: 0 }}
+              transition={isMobile ? { type: "spring", damping: 25, stiffness: 300 } : { duration: 0.2 }}
+              drag={isMobile ? "y" : false}
+              dragConstraints={{ top: 0, bottom: 0 }}
+              dragElastic={0.2}
+              onDragEnd={(_, info) => {
+                if (isMobile && info.offset.y > 150) {
+                  setIsUserModalOpen(false);
+                }
+              }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-t-[32px] md:rounded-lg p-6 w-full max-w-md shadow-xl text-gray-900 h-[95vh] md:h-auto"
+            >
+              <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-4 md:hidden" />
+              <div className="flex justify-between items-center mb-6 border-b pb-4">
+                <h2 className="text-lg font-bold flex items-center gap-2 text-primary-700"><UserPlus size={20} /> Convidar Usuário</h2>
+                <button onClick={() => setIsUserModalOpen(false)} className="text-gray-400 hover:text-gray-600">
+                  <X size={20} />
+                </button>
               </div>
-              <div>
-                <label className="block text-sm font-bold text-gray-700 mb-1 flex items-center gap-2"><Mail size={14}/> E-mail</label>
-                <input type="email" required value={newUser.email}
-                  onChange={(e) => setNewUser({...newUser, email: e.target.value})}
-                  className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-primary-500" />
-              </div>
-              <button type="submit" className="w-full bg-primary-600 text-white p-3 rounded-md font-bold hover:bg-primary-700 transition-colors shadow-lg">
-                Convidar e Criar Usuário
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
+              <p className="text-xs text-gray-500 mb-6">O usuário será vinculado ao tenant <strong>{tenants.find(t => t.id === newUser.tenant_id)?.nome_negocio}</strong>.</p>
+              <form onSubmit={handleCreateUser} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1 flex items-center gap-2"><User size={14}/> Nome Completo</label>
+                  <input type="text" required value={newUser.name}
+                    onChange={(e) => setNewUser({...newUser, name: e.target.value})}
+                    className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-primary-500" />
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-gray-700 mb-1 flex items-center gap-2"><Mail size={14}/> E-mail</label>
+                  <input type="email" required value={newUser.email}
+                    onChange={(e) => setNewUser({...newUser, email: e.target.value})}
+                    className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-primary-500" />
+                </div>
+                <button type="submit" className="w-full bg-primary-600 text-white p-3 rounded-md font-bold hover:bg-primary-700 transition-colors shadow-lg">
+                  Convidar e Criar Usuário
+                </button>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

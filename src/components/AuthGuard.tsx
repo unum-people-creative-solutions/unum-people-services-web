@@ -5,6 +5,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
 import { jwtDecode } from "jwt-decode";
 import TermsModal from "./TermsModal";
+import { AnimatePresence } from "framer-motion";
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, session, logout } = useAuthStore();
@@ -80,12 +81,14 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   return (
     <>
       {children}
-      {mustAcceptTerms && session?.email && (
-        <TermsModal 
-          email={session.email} 
-          onAccept={() => setMustAcceptTerms(false)} 
-        />
-      )}
+      <AnimatePresence>
+        {mustAcceptTerms && session?.email && (
+          <TermsModal 
+            email={session.email} 
+            onAccept={() => setMustAcceptTerms(false)} 
+          />
+        )}
+      </AnimatePresence>
     </>
   );
 }
