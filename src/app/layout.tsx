@@ -1,13 +1,18 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "@/app/globals.css";
 import AuthGuard from "@/components/AuthGuard";
 import CookieBanner from "@/components/CookieBanner";
+
+export const viewport: Viewport = {
+  themeColor: "#3D5D97",
+  width: "device-width",
+  initialScale: 1,
+};
 
 export const metadata: Metadata = {
   title: "CRM | Unum People",
   description: "Gestão inteligente de leads e tráfego",
   manifest: "/manifest.json",
-  themeColor: "#3D5D97",
   icons: {
     icon: "/icons/icon-192x192.png",
     apple: "/icons/icon-192x192.png",
@@ -16,6 +21,9 @@ export const metadata: Metadata = {
     capable: true,
     statusBarStyle: "default",
     title: "Unum CRM",
+  },
+  other: {
+    "mobile-web-app-capable": "yes",
   },
   formatDetection: {
     telephone: false,
@@ -39,10 +47,10 @@ export default function RootLayout({
             __html: `
               if ('serviceWorker' in navigator) {
                 window.addEventListener('load', function() {
-                  navigator.serviceWorker.register('/sw.js').then(function(registration) {
-                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
-                  }, function(err) {
-                    console.log('ServiceWorker registration failed: ', err);
+                  navigator.serviceWorker.register('/sw.js').then(function(reg) {
+                    // Registro silencioso em produção
+                  }).catch(function(err) {
+                    console.error('ServiceWorker registration failed: ', err);
                   });
                 });
               }
