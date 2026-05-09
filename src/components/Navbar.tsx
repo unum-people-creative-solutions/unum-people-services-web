@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getGoogleAdsAuthUrl } from "@/lib/google-ads";
+import pkg from "../../package.json";
 
 interface NavbarProps {
   selectedTenantId?: string;
@@ -246,6 +247,9 @@ export default function Navbar({
                             >
                               <LogOut size={22} /> Sair do Sistema
                             </button>
+                            <div className="mt-4 text-center">
+                              <span className="text-[10px] text-gray-400 font-medium uppercase tracking-widest">v{pkg.version}</span>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -334,6 +338,9 @@ export default function Navbar({
                         >
                           <LogOut size={18} /> Sair do Sistema
                         </button>
+                        <div className="mt-2 text-center">
+                          <span className="text-[9px] text-gray-400 font-medium uppercase tracking-widest">v{pkg.version}</span>
+                        </div>
                       </div>
 
                     </motion.div>
