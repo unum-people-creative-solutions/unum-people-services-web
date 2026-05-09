@@ -18,6 +18,10 @@ Frontend principal do SaaS CRM, permitindo que inquilinos gerenciem leads e admi
 
 ## 📱 Mobile & PWA (Trusted Web Activity)
 - **PWA Ready**: O app deve manter conformidade com o Lighthouse PWA. Alterações no `public/manifest.json` devem ser validadas.
+- **Notificações Push**: Implementadas via Web Push nativo.
+  - Service Worker: `src/worker/index.ts` (Compilado pelo `next-pwa`).
+  - Hook: `usePushNotifications` para gerenciar permissões e inscrições.
+  - Serviço: `src/services/notificationService.ts` para comunicação com o backend externo.
 - **TWA Integrity**: O arquivo `public/.well-known/assetlinks.json` é crítico. Ao adicionar novas chaves de assinatura (ex: Play Store), o fingerprint SHA256 deve ser anexado à lista sem remover os existentes.
 - **UX Nativa**: Priorizar gestos e evitar barras de scroll horizontais. O tema do navegador deve sempre respeitar o Brand Blue (`#3D5D97`).
 ## 🛠️ Padrões de Desenvolvimento & Segurança

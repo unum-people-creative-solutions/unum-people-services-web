@@ -3,11 +3,31 @@
 import { useEffect, useState } from "react";
 import { TenantService } from "@/services/api";
 import { useAuthStore } from "@/store/authStore";
-import { Plus, X, Building, Mail, Briefcase, Hash, LayoutGrid, Search, UserPlus, User, Eye, EyeOff, Copy, Check } from "lucide-react";
+import { Plus, X, Building, Mail, Briefcase, Hash, LayoutGrid, Search, UserPlus, User, Eye, EyeOff, Copy, Check, Bell, BellOff } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Navbar from "@/components/Navbar";
 import { motion, AnimatePresence } from "framer-motion";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
+
+// Sub-componente para gerenciar notificações push por tenant
+function BellToggle({ tenantId }: { tenantId: string }) {
+  const { isSubscribed, subscribeUser, unsubscribeUser } = usePushNotifications(tenantId);
+
+  return (
+    <button
+      onClick={() => isSubscribed ? unsubscribeUser() : subscribeUser()}
+      className={`p-2 rounded-md transition-all duration-200 ${
+        isSubscribed 
+          ? "bg-primary-100 text-primary-600 hover:bg-primary-200 shadow-inner" 
+          : "bg-gray-100 text-gray-400 hover:bg-gray-200"
+      }`}
+      title={isSubscribed ? "Desativar notificações para este cliente" : "Ativar notificações para este cliente"}
+    >
+      {isSubscribed ? <Bell size={16} fill="currentColor" /> : <BellOff size={16} />}
+    </button>
+  );
+}
 
 // Sub-componente para exibição segura da API Key
 function ApiKeyCell({ apiKey }: { apiKey: string }) {
@@ -219,6 +239,7 @@ export default function TenantsPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex items-center gap-2 justify-end">
+                        <BellToggle tenantId={t.id} />
                         <button 
                           onClick={() => { setNewUser({ ...newUser, tenant_id: t.id }); setIsUserModalOpen(true); }}
                           className="bg-gray-100 text-gray-700 px-3 py-1 rounded-md hover:bg-gray-200 transition-colors font-bold flex items-center gap-1"
@@ -279,6 +300,7 @@ export default function TenantsPage() {
                 </div>
 
                 <div className="bg-gray-50 p-4 flex gap-2">
+                  <BellToggle tenantId={t.id} />
                   <button 
                     onClick={() => { setNewUser({ ...newUser, tenant_id: t.id }); setIsUserModalOpen(true); }}
                     className="flex-1 bg-white border border-gray-200 text-gray-700 px-3 py-2 rounded-md hover:bg-gray-50 transition-colors font-bold text-xs flex items-center justify-center gap-2"
