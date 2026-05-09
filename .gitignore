@@ -33,3 +33,6 @@ npm-debug.log*
 /settings.gradle
 /manifest-checksum.txt
 /store_icon.png
+/twa-manifest.json
+/*.idsig
+/*-aligned.apk
