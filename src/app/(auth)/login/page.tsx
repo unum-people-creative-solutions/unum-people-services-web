@@ -4,6 +4,7 @@ import { useState } from "react";
 import { AuthenticationDetails, CognitoUser } from "amazon-cognito-identity-js";
 import { userPool } from "@/lib/cognito";
 import { useAuthStore } from "@/store/authStore";
+import { TenantService } from "@/services/api";
 import { useRouter } from "next/navigation";
 import { jwtDecode } from "jwt-decode";
 import Link from "next/link";
@@ -22,23 +23,47 @@ export default function LoginPage() {
   const setSession = useAuthStore((state) => state.setSession);
   const router = useRouter();
 
-  const onLoginSuccess = (result: any) => {
+  const onLoginSuccess = async (result: any) => {
     const idToken = result.getIdToken().getJwtToken();
     const decoded: any = jwtDecode(idToken);
-    const role = decoded["cognito:groups"]?.[0] || "USER";
+    const groups = decoded["cognito:groups"] || [];
+    const isGlobalAdmin = groups.includes("GlobalAdmin");
+    const role = isGlobalAdmin ? "GlobalAdmin" : "USER";
 
-    setSession({
+    const sessionData = {
       email: decoded.email,
       name: decoded.name || decoded.email,
       tenantId: decoded["custom:tenant_id"],
       role: role,
       token: idToken,
-    });
+    };
 
-    if (role === "GlobalAdmin") {
+    setSession(sessionData);
+
+    // Se for GlobalAdmin, vai direto para a lista de tenants (ele não precisa de tenant pessoal)
+    if (isGlobalAdmin) {
       router.push("/tenants");
-    } else {
+      return;
+    }
+
+    // Para usuários comuns, verificamos se eles têm configuração na base
+    try {
+      setLoading(true);
+      const myTenants = await TenantService.listMyTenants();
+      
+      if (!myTenants || myTenants.length === 0) {
+        // Sem configuração na base -> Forçar Onboarding
+        router.push("/onboarding");
+      } else {
+        // Com configuração -> Kanban
+        router.push("/kanban");
+      }
+    } catch (err) {
+      console.error("Erro ao validar conta:", err);
+      // Fallback para Kanban em caso de erro na API, mas idealmente Onboarding se não temos certeza
       router.push("/kanban");
+    } finally {
+      setLoading(false);
     }
   };
 
