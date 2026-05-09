@@ -6,7 +6,7 @@
 const swSelf = (self as unknown) as ServiceWorkerGlobalScope;
 
 swSelf.addEventListener('push', (event) => {
-  if (!(swSelf.Notification && swSelf.Notification.permission === 'granted')) {
+  if (typeof Notification === 'undefined' || Notification.permission !== 'granted') {
     return;
   }
 
