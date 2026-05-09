@@ -12,19 +12,26 @@ import { usePushNotifications } from "@/hooks/usePushNotifications";
 
 // Sub-componente para gerenciar notificações push por tenant
 function BellToggle({ tenantId }: { tenantId: string }) {
-  const { isSubscribed, subscribeUser, unsubscribeUser } = usePushNotifications(tenantId);
+  const { isSubscribed, subscribeUser, unsubscribeUser, loading } = usePushNotifications(tenantId);
 
   return (
     <button
       onClick={() => isSubscribed ? unsubscribeUser() : subscribeUser()}
+      disabled={loading}
       className={`p-2 rounded-md transition-all duration-200 ${
         isSubscribed 
           ? "bg-primary-100 text-primary-600 hover:bg-primary-200 shadow-inner" 
           : "bg-gray-100 text-gray-400 hover:bg-gray-200"
-      }`}
+      } ${loading ? "opacity-50 cursor-not-allowed" : ""}`}
       title={isSubscribed ? "Desativar notificações para este cliente" : "Ativar notificações para este cliente"}
     >
-      {isSubscribed ? <Bell size={16} fill="currentColor" /> : <BellOff size={16} />}
+      {loading ? (
+        <div className="w-4 h-4 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" />
+      ) : isSubscribed ? (
+        <Bell size={16} fill="currentColor" />
+      ) : (
+        <BellOff size={16} />
+      )}
     </button>
   );
 }
