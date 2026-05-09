@@ -46,13 +46,16 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{
             __html: `
               if ('serviceWorker' in navigator) {
-                window.addEventListener('load', function() {
-                  navigator.serviceWorker.register('/sw.js').then(function(reg) {
-                    // Registro silencioso em produção
-                  }).catch(function(err) {
-                    console.error('ServiceWorker registration failed: ', err);
+                console.log('[SW] Tentando registro imediato...');
+                navigator.serviceWorker.register('/sw.js', { scope: '/' })
+                  .then(function(reg) {
+                    console.log('[SW] Registro concluído com sucesso no escopo:', reg.scope);
+                  })
+                  .catch(function(err) {
+                    console.error('[SW] Falha no registro:', err);
                   });
-                });
+              } else {
+                console.warn('[SW] Service Workers não são suportados neste navegador.');
               }
             `,
           }}

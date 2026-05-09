@@ -66,15 +66,27 @@ export const usePushNotifications = (tenantId?: string) => {
       // Tenta obter o registro existente
       let registration = await navigator.serviceWorker.getRegistration();
       
-      // Se não encontrar, aguarda o ready com um timeout de 10 segundos
+      // Se não encontrar, tenta forçar um registro manual no hook
       if (!registration) {
-        console.log('[Push] Registro não encontrado via getRegistration, aguardando ready (timeout 10s)...');
-        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout aguardando Service Worker')), 10000));
+        console.warn('[Push] Registro não encontrado via getRegistration, tentando registrar manualmente...');
+        try {
+          registration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+          console.log('[Push] Registro manual realizado com sucesso.');
+        } catch (regError) {
+          console.error('[Push] Falha no registro manual dentro do hook:', regError);
+        }
+      }
+
+      // Se ainda não tiver, aguarda o ready com um timeout generoso de 15 segundos
+      if (!registration || !registration.active) {
+        console.log('[Push] SW ainda não está ativo, aguardando ready (timeout 15s)...');
+        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout aguardando Service Worker ativo')), 15000));
         try {
           registration = await Promise.race([
             navigator.serviceWorker.ready,
             timeoutPromise
           ]) as ServiceWorkerRegistration;
+          console.log('[Push] Service Worker ficou pronto (ready).');
         } catch (e) {
           console.error('[Push] Erro ou Timeout ao aguardar Service Worker:', e);
         }
