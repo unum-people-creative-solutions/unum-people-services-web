@@ -62,11 +62,27 @@ export const usePushNotifications = (tenantId?: string) => {
       }
 
       console.log('[Push] Verificando Service Worker...');
-      const registration = await navigator.serviceWorker.getRegistration();
+      
+      // Tenta obter o registro existente
+      let registration = await navigator.serviceWorker.getRegistration();
+      
+      // Se não encontrar, aguarda o ready com um timeout de 3 segundos
+      if (!registration) {
+        console.log('[Push] Registro não encontrado via getRegistration, aguardando ready (timeout 3s)...');
+        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout aguardando Service Worker')), 3000));
+        try {
+          registration = await Promise.race([
+            navigator.serviceWorker.ready,
+            timeoutPromise
+          ]) as ServiceWorkerRegistration;
+        } catch (e) {
+          console.error('[Push] Erro ou Timeout ao aguardar Service Worker:', e);
+        }
+      }
       
       if (!registration) {
-        console.error('[Push] Nenhum Service Worker registrado. O PWA pode estar desativado no ambiente de desenvolvimento.');
-        alert('O serviço de notificações não está ativo no momento (verifique se o PWA está habilitado).');
+        console.error('[Push] Service Worker não encontrado após tentativa de espera.');
+        alert('O serviço de notificações não está pronto. Tente recarregar a página.');
         setLoading(false);
         return;
       }
@@ -76,7 +92,7 @@ export const usePushNotifications = (tenantId?: string) => {
 
       if (!vapidKey) {
         console.error('[Push] VAPID Key não encontrada no ambiente (NEXT_PUBLIC_VAPID_KEY).');
-        alert('Erro de configuração: VAPID Key ausente.');
+        alert('Erro de configuração: VAPID Key ausente. Verifique se o .env está carregado.');
         setLoading(false);
         return;
       }
