@@ -1,38 +1,51 @@
 {
-  "packageId": "com.unumpeople.crm",
+  "packageId": "br.com.unumpeople.crm.twa",
   "host": "crm.unumpeople.com.br",
   "name": "Unum People CRM",
   "launcherName": "Unum CRM",
-  "displayMode": "standalone",
+  "display": "standalone",
   "themeColor": "#3D5D97",
+  "themeColorDark": "#000000",
+  "navigationColor": "#000000",
+  "navigationColorDark": "#000000",
+  "navigationDividerColor": "#000000",
+  "navigationDividerColorDark": "#000000",
   "backgroundColor": "#44516F",
+  "enableNotifications": true,
   "startUrl": "/",
   "iconUrl": "https://crm.unumpeople.com.br/icons/icon-512x512.png",
   "maskableIconUrl": "https://crm.unumpeople.com.br/icons/icon-maskable-512x512.png",
-  "splashColor": "#44516F",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "/home/jarede/unum-people-services/Frontend/unum-people-services-web/android.keystore",
+    "alias": "android"
+  },
+  "appVersionName": "1",
+  "appVersionCode": 1,
   "shortcuts": [],
+  "generatorApp": "bubblewrap-cli",
   "webManifestUrl": "https://crm.unumpeople.com.br/manifest.json",
   "fallbackType": "customtabs",
   "features": {
-    "locationDelegation": true,
-    "playBilling": false
+    "playBilling": {
+      "enabled": true
+    }
   },
   "alphaDependencies": {
     "enabled": false
   },
-  "enableNotifications": true,
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fullScopeUrl": "https://crm.unumpeople.com.br/",
+  "minSdkVersion": 21,
   "orientation": "portrait",
-  "fingerprints": [
-    {
-      "sha256": "00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00:00"
-    }
-  ],
+  "fingerprints": [],
   "additionalTrustedOrigins": [],
   "retainedBundles": [],
-  "appVersionCode": 1,
-  "appVersionName": "0.2.0",
-  "signingKey": {
-    "path": "./unum-crm-key.keystore",
-    "alias": "unum-crm"
-  }
+  "protocolHandlers": [],
+  "fileHandlers": [],
+  "launchHandlerClientMode": "",
+  "displayOverride": [],
+  "appVersion": "1"
 }

@@ -16,6 +16,10 @@ Frontend principal do SaaS CRM, permitindo que inquilinos gerenciem leads e admi
   - `/settings/ads/callback`: Callback de autorização do Google Ads.
 - **Middleware**: Validação de RBAC na borda via Netlify Edge Functions.
 
+## 📱 Mobile & PWA (Trusted Web Activity)
+- **PWA Ready**: O app deve manter conformidade com o Lighthouse PWA. Alterações no `public/manifest.json` devem ser validadas.
+- **TWA Integrity**: O arquivo `public/.well-known/assetlinks.json` é crítico. Ao adicionar novas chaves de assinatura (ex: Play Store), o fingerprint SHA256 deve ser anexado à lista sem remover os existentes.
+- **UX Nativa**: Priorizar gestos e evitar barras de scroll horizontais. O tema do navegador deve sempre respeitar o Brand Blue (`#3D5D97`).
 ## 🛠️ Padrões de Desenvolvimento & Segurança
 - **Estilização**: Tailwind CSS com foco em responsividade e UX premium (uso de `framer-motion` para interações mobile).
 - **Estado**: Zustand ou React Context para gerenciamento do Kanban.
