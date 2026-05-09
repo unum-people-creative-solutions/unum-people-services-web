@@ -27,16 +27,23 @@ export const usePushNotifications = (tenantId?: string) => {
   const checkSubscription = async () => {
     if (!('serviceWorker' in navigator)) return;
     try {
-      // Usamos getRegistration() em vez de ready para evitar hang se o SW não estiver registrado
       const registration = await navigator.serviceWorker.getRegistration();
       if (!registration) {
         setIsSubscribed(false);
         return;
       }
       const subscription = await registration.pushManager.getSubscription();
-      setIsSubscribed(!!subscription);
+      if (!subscription) {
+        setIsSubscribed(false);
+        return;
+      }
+
+      // Valida com o backend se este endpoint está inscrito para este tenantId
+      const isActuallySubscribed = await NotificationService.checkStatus(subscription.endpoint, tenantId);
+      setIsSubscribed(isActuallySubscribed);
     } catch (error) {
       console.error('[Push] Erro ao verificar inscrição inicial:', error);
+      setIsSubscribed(false);
     }
   };
 
