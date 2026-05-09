@@ -9,13 +9,15 @@ Frontend principal do SaaS CRM, permitindo que inquilinos gerenciem leads e admi
 - **Framework**: Next.js 15 (App Router).
 - **Hospedagem**: Netlify.
 - **Autenticação**: Amazon Cognito (JWT via Cookies HTTP-Only).
+- **Integrações**: Google Ads (OAuth para captura de leads e conversões).
 - **Rotas Privadas**:
   - `/dashboard/[tenant_id]`: CRM do Inquilino (Kanban).
   - `/admin`: Painel Global Admin.
+  - `/settings/ads/callback`: Callback de autorização do Google Ads.
 - **Middleware**: Validação de RBAC na borda via Netlify Edge Functions.
 
 ## 🛠️ Padrões de Desenvolvimento & Segurança
-- **Estilização**: Tailwind CSS com foco em responsividade e UX premium.
+- **Estilização**: Tailwind CSS com foco em responsividade e UX premium (uso de `framer-motion` para interações mobile).
 - **Estado**: Zustand ou React Context para gerenciamento do Kanban.
 - **Bibliotecas**: SEMPRE preferir bibliotecas reconhecidas (ex: Framer Motion, Radix UI) in vez de implementações manuais para componentes React complexos.
 - **Análise Pré-Implementação**: Antes de realizar qualquer alteração, o agente DEVE analisar as funcionalidades existentes no componente/página para garantir que nenhuma característica ou botão seja removido inadvertidamente. O objetivo é a evolução contínua sem regressões.
@@ -28,7 +30,16 @@ Frontend principal do SaaS CRM, permitindo que inquilinos gerenciem leads e admi
 - **Build & Lint**: Executar `npm run lint` antes de propor alterações complexas.
 
 ## 🛡️ Diretrizes LGPD & Privacidade
+- **Consentimento**: Uso do `TermsModal` para garantir aceite de termos e política antes do acesso ao CRM.
 - **Controle de Acesso**: Garantir que um usuário só acesse dados de tenants aos quais está vinculado.
+
+## 🔄 Ciclo de Lançamento & Versão
+- **Versionamento**: O app utiliza versionamento semântico no `package.json`.
+- **Atualização Automática**: Ao implementar novas funcionalidades significativas ou correções críticas, o agente DEVE incrementar a versão no `package.json` (ex: `patch` para correções, `minor` para novas features). Use o comando `npm version patch --no-git-tag-version` para automatizar.
+
+## 📚 Manutenção de Documentação
+- **Atualização Proativa**: O agente é responsável por manter o `README.md`, o `AGENTS.md` e outros arquivos de documentação sincronizados com as mudanças no código.
+- **Revisão de Diffs**: Sempre que finalizar uma tarefa, revise o que foi alterado e verifique se as seções "Arquitetura", "Rotas" ou "Diretrizes" em ambos os arquivos precisam de ajustes.
 
 ## 🧠 Persistência de Contexto (Context Anchor)
 - **Recuperação**: Execute `cat AGENTS.md` para se reorientar.
