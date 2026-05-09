@@ -1,10 +1,10 @@
 // Custom Service Worker for Push Notifications
 // This file will be compiled by next-pwa
 
-declare let self: ServiceWorkerGlobalScope;
+const swSelf = (self as unknown) as ServiceWorkerGlobalScope;
 
-self.addEventListener('push', (event) => {
-  if (!(self.Notification && self.Notification.permission === 'granted')) {
+swSelf.addEventListener('push', (event) => {
+  if (!(swSelf.Notification && swSelf.Notification.permission === 'granted')) {
     return;
   }
 
@@ -15,7 +15,7 @@ self.addEventListener('push', (event) => {
   };
 
   event.waitUntil(
-    self.registration.showNotification(data.title, {
+    swSelf.registration.showNotification(data.title, {
       body: data.body,
       icon: '/icons/icon-192x192.png',
       badge: '/icons/icon-192x192.png',
@@ -26,10 +26,10 @@ self.addEventListener('push', (event) => {
   );
 });
 
-self.addEventListener('notificationclick', (event) => {
+swSelf.addEventListener('notificationclick', (event) => {
   event.notification.close();
   event.waitUntil(
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+    swSelf.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
       if (clientList.length > 0) {
         let client = clientList[0];
         for (let i = 0; i < clientList.length; i++) {
@@ -39,7 +39,7 @@ self.addEventListener('notificationclick', (event) => {
         }
         return client.focus();
       }
-      return self.clients.openWindow(event.notification.data.url);
+      return swSelf.clients.openWindow(event.notification.data.url);
     })
   );
 });
