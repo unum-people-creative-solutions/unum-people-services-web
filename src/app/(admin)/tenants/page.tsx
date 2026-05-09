@@ -16,7 +16,10 @@ function BellToggle({ tenantId }: { tenantId: string }) {
 
   return (
     <button
-      onClick={() => isSubscribed ? unsubscribeUser() : subscribeUser()}
+      onClick={(e) => {
+        e.stopPropagation();
+        isSubscribed ? unsubscribeUser() : subscribeUser();
+      }}
       disabled={loading}
       className={`p-2 rounded-md transition-all duration-200 ${
         isSubscribed 
