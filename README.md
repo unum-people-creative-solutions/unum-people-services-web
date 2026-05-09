@@ -20,8 +20,9 @@ Frontend único em Next.js focado em performance de vendas e atribuição de an�
 - **Conformidade LGPD:** Fluxo de consentimento obrigatório para Termos de Uso e Política de Privacidade integrado ao login, com interface adaptada para mobile.
 
 ## 4. Gestão Administrativa & Segurança
-- **API Key Management:** Visualização e cópia da chave de integração programática diretamente na gestão de Tenants.
-- **Dashboard Global:** Visualização de todos os inquilinos e seus respectivos faturamentos (Apenas para GlobalAdmin).
+- **API Key Management**: Visualização e cópia da chave de integração programática diretamente na lista de gestão de Tenants.
+- **Notificações Push**: Botão para ativar/desativar notificações push por inquilino diretamente na lista administrativa.
+- **Dashboard Global**: Visualização de todos os inquilinos e seus respectivos faturamentos (Apenas para GlobalAdmin).
 - **Convite de Usuários:** Fluxo para adicionar novos membros a uma conta ou vincular usuários existentes a novos tenants.
 
 ## 5. User Experience (UX)

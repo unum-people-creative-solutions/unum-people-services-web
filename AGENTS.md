@@ -12,7 +12,7 @@ Frontend principal do SaaS CRM, permitindo que inquilinos gerenciem leads e admi
 - **Integrações**: Google Ads (OAuth para captura de leads e conversões).
 - **Rotas Privadas**:
   - `/dashboard/[tenant_id]`: CRM do Inquilino (Kanban).
-  - `/admin`: Painel Global Admin.
+  - `/admin`: Painel Global Admin (Gestão de Tenants, API Keys e Notificações Push por inquilino).
   - `/settings/ads/callback`: Callback de autorização do Google Ads.
 - **Middleware**: Validação de RBAC na borda via Netlify Edge Functions.
 
