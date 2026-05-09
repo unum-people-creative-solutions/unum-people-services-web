@@ -3,12 +3,14 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAuthStore } from "@/store/authStore";
-import { User, Mail, Shield, Building, Trash2, Save, X, FileText, ExternalLink } from "lucide-react";
+import { User, Mail, Shield, Building, Trash2, Save, X, FileText, ExternalLink, Bell, BellOff } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import { motion, AnimatePresence } from "framer-motion";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 
 export default function SettingsPage() {
   const { session } = useAuthStore();
+  const { isSubscribed, subscribeUser, unsubscribeUser, loading: pushLoading, permission } = usePushNotifications();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
@@ -90,6 +92,41 @@ export default function SettingsPage() {
                 </div>
                 <p className="text-[10px] text-gray-400 mt-1 italic">* O e-mail não pode ser alterado manualmente.</p>
               </div>
+            </div>
+          </section>
+
+          {/* Notificações */}
+          <section className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+            <h2 className="text-sm font-black uppercase tracking-widest text-gray-400 mb-6 flex items-center gap-2">
+              <Bell size={16} /> Notificações Push
+            </h2>
+            
+            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100">
+              <div className="flex-1 mr-4">
+                <p className="font-bold text-gray-700">Notificações no Navegador</p>
+                <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">
+                  Receba alertas instantâneos de novos leads e atualizações.
+                </p>
+                {permission === 'denied' && (
+                  <p className="text-[10px] text-red-500 font-bold mt-1 uppercase">
+                    ⚠️ Notificações bloqueadas no seu navegador. Ative-as nas configurações do site.
+                  </p>
+                )}
+              </div>
+              
+              <button
+                onClick={() => isSubscribed ? unsubscribeUser() : subscribeUser()}
+                disabled={pushLoading || permission === 'denied'}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
+                  isSubscribed ? 'bg-primary-600' : 'bg-gray-200'
+                } ${pushLoading || permission === 'denied' ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    isSubscribed ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
             </div>
           </section>
 
