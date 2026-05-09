@@ -16,6 +16,14 @@
 *.pem
 npm-debug.log*
 
+# PWA files
+/public/sw.js
+/public/sw.js.map
+/public/workbox-*.js
+/public/workbox-*.js.map
+/public/worker-*.js
+/public/worker-*.js.map
+
 # Android / Bubblewrap
 /android.keystore
 /app-release*.apk

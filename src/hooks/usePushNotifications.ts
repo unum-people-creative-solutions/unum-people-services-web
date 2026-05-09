@@ -66,10 +66,10 @@ export const usePushNotifications = (tenantId?: string) => {
       // Tenta obter o registro existente
       let registration = await navigator.serviceWorker.getRegistration();
       
-      // Se não encontrar, aguarda o ready com um timeout de 3 segundos
+      // Se não encontrar, aguarda o ready com um timeout de 10 segundos
       if (!registration) {
-        console.log('[Push] Registro não encontrado via getRegistration, aguardando ready (timeout 3s)...');
-        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout aguardando Service Worker')), 3000));
+        console.log('[Push] Registro não encontrado via getRegistration, aguardando ready (timeout 10s)...');
+        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout aguardando Service Worker')), 10000));
         try {
           registration = await Promise.race([
             navigator.serviceWorker.ready,
