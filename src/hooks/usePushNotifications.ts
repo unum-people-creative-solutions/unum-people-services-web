@@ -27,42 +27,61 @@ export const usePushNotifications = (tenantId?: string) => {
   const checkSubscription = async () => {
     if (!('serviceWorker' in navigator)) return;
     try {
-      const registration = await navigator.serviceWorker.ready;
+      // Usamos getRegistration() em vez de ready para evitar hang se o SW não estiver registrado
+      const registration = await navigator.serviceWorker.getRegistration();
+      if (!registration) {
+        setIsSubscribed(false);
+        return;
+      }
       const subscription = await registration.pushManager.getSubscription();
-      
-      // Se tivermos tenantId, idealmente verificaríamos no backend.
-      // Como não temos esse endpoint, por enquanto confiamos no status do push global
-      // mas permitimos o toggle individual.
       setIsSubscribed(!!subscription);
     } catch (error) {
-      console.error('Erro ao verificar inscrição:', error);
+      console.error('[Push] Erro ao verificar inscrição inicial:', error);
     }
   };
 
   const subscribeUser = async () => {
+    console.log('[Push] Iniciando processo de inscrição...');
     if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+      console.error('[Push] Notificações ou Service Worker não suportados.');
       alert('Seu navegador não suporta notificações push.');
       return;
     }
 
     setLoading(true);
     try {
+      console.log('[Push] Solicitando permissão...');
       const permissionResult = await Notification.requestPermission();
       setPermission(permissionResult);
+      console.log('[Push] Resultado da permissão:', permissionResult);
 
       if (permissionResult !== 'granted') {
         alert('Você precisa permitir as notificações para receber atualizações.');
+        setLoading(false);
         return;
       }
 
-      const registration = await navigator.serviceWorker.ready;
+      console.log('[Push] Verificando Service Worker...');
+      const registration = await navigator.serviceWorker.getRegistration();
+      
+      if (!registration) {
+        console.error('[Push] Nenhum Service Worker registrado. O PWA pode estar desativado no ambiente de desenvolvimento.');
+        alert('O serviço de notificações não está ativo no momento (verifique se o PWA está habilitado).');
+        setLoading(false);
+        return;
+      }
+
+      console.log('[Push] Service Worker pronto. Obtendo VAPID Key...');
       const vapidKey = process.env.NEXT_PUBLIC_VAPID_KEY;
 
       if (!vapidKey) {
-        console.error('VAPID Key não encontrada. Verifique o arquivo .env.local');
+        console.error('[Push] VAPID Key não encontrada no ambiente (NEXT_PUBLIC_VAPID_KEY).');
+        alert('Erro de configuração: VAPID Key ausente.');
+        setLoading(false);
         return;
       }
 
+      console.log('[Push] Inscrevendo no Push Manager...');
       let subscription = await registration.pushManager.getSubscription();
       
       if (!subscription) {
@@ -70,38 +89,54 @@ export const usePushNotifications = (tenantId?: string) => {
           userVisibleOnly: true,
           applicationServerKey: base64ToUint8Array(vapidKey),
         });
+        console.log('[Push] Nova inscrição criada.');
+      } else {
+        console.log('[Push] Inscrição já existente encontrada.');
       }
 
+      console.log('[Push] Enviando para o backend para o tenant:', tenantId);
       await NotificationService.subscribe(subscription, tenantId);
       setIsSubscribed(true);
-      console.log(`Inscrito com sucesso para o tenant: ${tenantId || 'Global'}`);
+      console.log('[Push] Sucesso total!');
     } catch (error) {
-      console.error('Erro ao inscrever para notificações push:', error);
-      alert('Erro ao ativar notificações. Tente novamente.');
+      console.error('[Push] Erro crítico no processo:', error);
+      alert('Erro ao ativar notificações. Verifique o console para mais detalhes.');
     } finally {
       setLoading(false);
+      console.log('[Push] Processo finalizado.');
     }
   };
 
   const unsubscribeUser = async () => {
+    console.log('[Push] Iniciando cancelamento de inscrição...');
     setLoading(true);
     try {
-      const registration = await navigator.serviceWorker.ready;
+      const registration = await navigator.serviceWorker.getRegistration();
+      if (!registration) {
+        console.warn('[Push] Tentativa de desinscrever sem Service Worker ativo.');
+        setIsSubscribed(false);
+        return;
+      }
+
       const subscription = await registration.pushManager.getSubscription();
 
       if (subscription) {
+        console.log('[Push] Removendo do backend...');
         await NotificationService.unsubscribe(subscription.endpoint, tenantId);
         
-        // Só cancelamos a inscrição no browser se não houver tenantId (cancelamento global)
         if (!tenantId) {
+          console.log('[Push] Cancelando inscrição global no browser...');
           await subscription.unsubscribe();
         }
         
         setIsSubscribed(false);
-        console.log(`Desinscrito com sucesso para o tenant: ${tenantId || 'Global'}`);
+        console.log('[Push] Desinscrito com sucesso.');
+      } else {
+        console.log('[Push] Nenhuma inscrição ativa encontrada para remover.');
+        setIsSubscribed(false);
       }
     } catch (error) {
-      console.error('Erro ao cancelar inscrição:', error);
+      console.error('[Push] Erro ao desinscrever:', error);
       alert('Erro ao desativar notificações.');
     } finally {
       setLoading(false);
