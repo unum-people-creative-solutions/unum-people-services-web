@@ -1,0 +1,21 @@
+import api from './api';
+
+export const NotificationService = {
+  subscribe: async (subscription: PushSubscription, tenantId?: string) => {
+    let url = '/notifications/subscribe';
+    if (tenantId) {
+      url += `?tenant_id=${tenantId}`;
+    }
+    // Convertendo para JSON puro para garantir que apenas endpoint e keys sejam enviados
+    const response = await api.post(url, subscription.toJSON());
+    return response.data;
+  },
+  unsubscribe: async (endpoint: string, tenantId?: string) => {
+    let url = '/notifications/unsubscribe';
+    if (tenantId) {
+      url += `?tenant_id=${tenantId}`;
+    }
+    const response = await api.delete(url, { data: { endpoint } });
+    return response.data;
+  }
+};
