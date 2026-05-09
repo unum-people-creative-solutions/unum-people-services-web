@@ -1,3 +1,5 @@
+/// <reference lib="webworker" />
+
 // Custom Service Worker for Push Notifications
 // This file will be compiled by next-pwa
 
