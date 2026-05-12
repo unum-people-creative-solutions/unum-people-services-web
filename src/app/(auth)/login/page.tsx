@@ -40,28 +40,38 @@ export default function LoginPage() {
 
     setSession(sessionData);
 
-    // Se for GlobalAdmin, vai direto para a lista de tenants (ele não precisa de tenant pessoal)
-    if (isGlobalAdmin) {
-      router.push("/tenants");
-      return;
-    }
+    console.log("[Login] Sessão iniciada:", {
+      email: sessionData.email,
+      role: sessionData.role,
+      isGlobalAdmin
+    });
 
-    // Para usuários comuns, verificamos se eles têm configuração na base
+    // Verificamos se o usuário (Admin ou Comum) tem configuração na base
     try {
       setLoading(true);
+      console.log("[Login] Verificando se o usuário possui configuração no banco de dados...");
       const myTenants = await TenantService.listMyTenants();
+      console.log("[Login] Meus tenants encontrados:", myTenants);
       
       if (!myTenants || myTenants.length === 0) {
-        // Sem configuração na base -> Forçar Onboarding
+        console.log("[Login] Redirecionando para Onboarding (sem registros na base)");
         router.push("/onboarding");
       } else {
-        // Com configuração -> Kanban
-        router.push("/kanban");
+        // Se já tiver registros, redireciona baseado na role
+        if (isGlobalAdmin) {
+          console.log("[Login] Redirecionando GlobalAdmin para /tenants");
+          router.push("/tenants");
+        } else {
+          console.log("[Login] Redirecionando Usuário para /kanban");
+          router.push("/kanban");
+        }
       }
     } catch (err) {
       console.error("Erro ao validar conta:", err);
-      // Fallback para Kanban em caso de erro na API, mas idealmente Onboarding se não temos certeza
-      router.push("/kanban");
+      // Fallback de segurança em caso de erro na API: 
+      // Se for GlobalAdmin permite seguir para /tenants, senão /kanban
+      if (isGlobalAdmin) router.push("/tenants");
+      else router.push("/kanban");
     } finally {
       setLoading(false);
     }

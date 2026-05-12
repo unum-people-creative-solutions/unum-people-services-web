@@ -24,6 +24,18 @@ Frontend principal do SaaS CRM, permitindo que inquilinos gerenciem leads e admi
   - Serviço: `src/services/notificationService.ts` para comunicação com o backend externo.
 - **TWA Integrity**: O arquivo `public/.well-known/assetlinks.json` é crítico. Ao adicionar novas chaves de assinatura (ex: Play Store), o fingerprint SHA256 deve ser anexado à lista sem remover os existentes.
 - **UX Nativa**: Priorizar gestos e evitar barras de scroll horizontais. O tema do navegador deve sempre respeitar o Brand Blue (`#3D5D97`).
+
+## 🤖 Build Android (TWA via Bubblewrap)
+Para gerar o pacote `.aab` para a Play Store, utilize os seguintes passos dentro da pasta `android/`:
+1. **Configuração**: Certifique-se de ter o `twa-manifest.json` atualizado com o `packageId: com.br.unumpeople.crm`.
+2. **Comandos**:
+   ```bash
+   cd android
+   bubblewrap build
+   ```
+3. **Assinatura**: Use a keystore `unum-key.keystore` para assinar o pacote.
+4. **Deploy**: O arquivo gerado `app-release-bundle.aab` deve ser enviado ao Play Console.
+
 ## 🛠️ Padrões de Desenvolvimento & Segurança
 - **Estilização**: Tailwind CSS com foco em responsividade e UX premium (uso de `framer-motion` para interações mobile).
 - **Estado**: Zustand ou React Context para gerenciamento do Kanban.
