@@ -1,13 +1,11 @@
 {
-  "fallbackType": "customtabs",
-  "generatorApp": "bubblewrap-cli",
-  "webManifestUrl": "https://crm.unumpeople.com.br/manifest.json",
-  "packageId": "com.br.unumpeople.crm",
+  "packageId": "br.com.unumpeople.crm",
   "host": "crm.unumpeople.com.br",
   "name": "Unum People CRM",
   "launcherName": "Unum CRM",
   "display": "standalone",
   "themeColor": "#3D5D97",
+  "themeColorDark": "#000000",
   "navigationColor": "#44516F",
   "navigationColorDark": "#000000",
   "navigationDividerColor": "#000000",
@@ -22,18 +20,28 @@
     "path": "./unum-key.keystore",
     "alias": "unum-alias"
   },
-  "appVersionCode": 1,
   "appVersionName": "1.0.0",
+  "appVersionCode": 2,
+  "shortcuts": [],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://crm.unumpeople.com.br/manifest.json",
+  "fallbackType": "customtabs",
+  "features": {},
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "minSdkVersion": 21,
   "orientation": "portrait",
   "fingerprints": [
     {
-      "sha256": "70:D5:42:A0:0D:BB:4A:C9:11:A5:AC:A0:CE:93:7A:52:EF:DF:D9:F6:24:82:03:FA:36:F7:5F:65:19:07:84:8D"
-    },
-    {
-      "sha256": "07:1E:E4:20:BA:74:73:F8:60:2F:1D:9F:4C:0A:C8:0D:30:37:9E:05:F7:C5:68:9E:71:46:9B:39:CC:67:4F:98"
+      "sha256": "75:E8:60:CC:20:4C:4D:61:E6:21:58:10:CB:85:1E:BB:C2:E6:06:4D:A3:60:BC:20:0D:00:66:C1:BF:2F:F6:A5"
     }
   ],
   "additionalTrustedOrigins": [],
   "retainedBundles": [],
-  "appOptions": {}
+  "displayOverride": [],
+  "appVersion": "1.0.0"
 }
