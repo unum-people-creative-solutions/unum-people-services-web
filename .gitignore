@@ -44,3 +44,4 @@ npm-debug.log*
 /twa-manifest.json
 /*.idsig
 /*-aligned.apk
+/android
