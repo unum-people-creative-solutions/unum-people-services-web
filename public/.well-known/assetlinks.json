@@ -3,9 +3,10 @@
     "relation": ["delegate_permission/common.handle_all_urls"],
     "target": {
       "namespace": "android_app",
-      "package_name": "com.unumpeople.crm",
+      "package_name": "com.br.unumpeople.crm",
       "sha256_cert_fingerprints": [
-        "70:D5:42:A0:0D:BB:4A:C9:11:A5:AC:A0:CE:93:7A:52:EF:DF:D9:F6:24:82:03:FA:36:F7:5F:65:19:07:84:8D"
+        "70:D5:42:A0:0D:BB:4A:C9:11:A5:AC:A0:CE:93:7A:52:EF:DF:D9:F6:24:82:03:FA:36:F7:5F:65:19:07:84:8D",
+        "04:3C:B2:83:A5:AE:CD:4F:74:71:A0:4A:F3:44:D6:A7:CC:7C:7C:7D:CB:08:00:39:FC:11:30:D1:48:49:A3:60"
       ]
     }
   }
