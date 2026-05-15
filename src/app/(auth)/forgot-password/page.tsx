@@ -6,29 +6,43 @@ import { userPool } from "@/lib/cognito";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { forgotPasswordSchema, resetPasswordSchema } from "@/lib/validations";
+import { Input } from "@/components/ui/Input";
+import { z } from "zod";
+
+type ForgotPasswordValues = z.infer<typeof forgotPasswordSchema>;
+type ResetPasswordValues = z.infer<typeof resetPasswordSchema>;
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
-  const [code, setCode] = useState("");
-  const [newPassword, setNewPassword] = useState("");
   const [step, setStep] = useState(1); // 1: Email, 2: Code/Password
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
 
-  const getCognitoUser = () => {
+  const forgotForm = useForm<ForgotPasswordValues>({
+    resolver: zodResolver(forgotPasswordSchema),
+  });
+
+  const resetForm = useForm<ResetPasswordValues>({
+    resolver: zodResolver(resetPasswordSchema),
+  });
+
+  const getCognitoUser = (userEmail: string) => {
     return new CognitoUser({
-      Username: email,
+      Username: userEmail,
       Pool: userPool,
     });
   };
 
-  const handleRequestCode = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleRequestCode = (data: ForgotPasswordValues) => {
     setLoading(true);
     setError("");
+    setEmail(data.email);
 
-    const cognitoUser = getCognitoUser();
+    const cognitoUser = getCognitoUser(data.email);
 
     cognitoUser.forgotPassword({
       onSuccess: () => {
@@ -42,14 +56,13 @@ export default function ForgotPasswordPage() {
     });
   };
 
-  const handleResetPassword = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleResetPassword = (data: ResetPasswordValues) => {
     setLoading(true);
     setError("");
 
-    const cognitoUser = getCognitoUser();
+    const cognitoUser = getCognitoUser(email);
 
-    cognitoUser.confirmPassword(code, newPassword, {
+    cognitoUser.confirmPassword(data.code, data.newPassword, {
       onSuccess: () => {
         alert("Senha redefinida com sucesso!");
         router.push("/login");
@@ -73,18 +86,14 @@ export default function ForgotPasswordPage() {
         {step === 1 ? (
           <>
             <p className="text-gray-500 text-sm mb-6">Insira seu e-mail para receber um código de verificação.</p>
-            <form onSubmit={handleRequestCode} className="space-y-4">
+            <form onSubmit={forgotForm.handleSubmit(handleRequestCode)} className="space-y-4">
               {error && <div className="p-3 bg-red-50 text-red-600 text-xs rounded-md text-center">{error}</div>}
-              <div>
-                <label className="block text-gray-700 text-sm font-bold mb-2">E-mail</label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full p-3 border rounded-md focus:ring-2 focus:ring-primary-500 outline-none"
-                  required
-                />
-              </div>
+              <Input
+                label="E-mail"
+                type="email"
+                {...forgotForm.register("email")}
+                error={forgotForm.formState.errors.email?.message}
+              />
               <button
                 type="submit"
                 disabled={loading}
@@ -97,30 +106,21 @@ export default function ForgotPasswordPage() {
         ) : (
           <>
             <p className="text-gray-500 text-sm mb-6">Insira o código enviado para <b>{email}</b> e sua nova senha.</p>
-            <form onSubmit={handleResetPassword} className="space-y-4">
+            <form onSubmit={resetForm.handleSubmit(handleResetPassword)} className="space-y-4">
               {error && <div className="p-3 bg-red-50 text-red-600 text-xs rounded-md text-center">{error}</div>}
-              <div>
-                <label className="block text-gray-700 text-sm font-bold mb-2">Código de Verificação</label>
-                <input
-                  type="text"
-                  value={code}
-                  onChange={(e) => setCode(e.target.value)}
-                  className="w-full p-3 border rounded-md focus:ring-2 focus:ring-primary-500 outline-none"
-                  placeholder="6 dígitos"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-gray-700 text-sm font-bold mb-2">Nova Senha</label>
-                <input
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  className="w-full p-3 border rounded-md focus:ring-2 focus:ring-primary-500 outline-none"
-                  placeholder="Mínimo 8 caracteres"
-                  required
-                />
-              </div>
+              <Input
+                label="Código de Verificação"
+                placeholder="6 dígitos"
+                {...resetForm.register("code")}
+                error={resetForm.formState.errors.code?.message}
+              />
+              <Input
+                label="Nova Senha"
+                type="password"
+                placeholder="Mínimo 8 caracteres"
+                {...resetForm.register("newPassword")}
+                error={resetForm.formState.errors.newPassword?.message}
+              />
               <button
                 type="submit"
                 disabled={loading}

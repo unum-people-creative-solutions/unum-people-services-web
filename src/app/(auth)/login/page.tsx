@@ -9,12 +9,17 @@ import { useRouter } from "next/navigation";
 import { jwtDecode } from "jwt-decode";
 import Link from "next/link";
 import Image from "next/image";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { loginSchema } from "@/lib/validations";
+import { Input } from "@/components/ui/Input";
+import { z } from "zod";
+
+type LoginFormValues = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [userObj, setUserObj] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -22,6 +27,14 @@ export default function LoginPage() {
   
   const setSession = useAuthStore((state) => state.setSession);
   const router = useRouter();
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LoginFormValues>({
+    resolver: zodResolver(loginSchema),
+  });
 
   const onLoginSuccess = async (result: any) => {
     const idToken = result.getIdToken().getJwtToken();
@@ -46,7 +59,6 @@ export default function LoginPage() {
       isGlobalAdmin
     });
 
-    // Verificamos se o usuário (Admin ou Comum) tem configuração na base
     try {
       setLoading(true);
       console.log("[Login] Verificando se o usuário possui configuração no banco de dados...");
@@ -57,7 +69,6 @@ export default function LoginPage() {
         console.log("[Login] Redirecionando para Onboarding (sem registros na base)");
         router.push("/onboarding");
       } else {
-        // Se já tiver registros, redireciona baseado na role
         if (isGlobalAdmin) {
           console.log("[Login] Redirecionando GlobalAdmin para /tenants");
           router.push("/tenants");
@@ -68,8 +79,6 @@ export default function LoginPage() {
       }
     } catch (err) {
       console.error("Erro ao validar conta:", err);
-      // Fallback de segurança em caso de erro na API: 
-      // Se for GlobalAdmin permite seguir para /tenants, senão /kanban
       if (isGlobalAdmin) router.push("/tenants");
       else router.push("/kanban");
     } finally {
@@ -77,16 +86,15 @@ export default function LoginPage() {
     }
   };
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleLogin = (data: LoginFormValues) => {
     setLoading(true);
     setError("");
 
-    const normalizedEmail = email.toLowerCase().trim();
+    const normalizedEmail = data.email.toLowerCase().trim();
 
     const authDetails = new AuthenticationDetails({
       Username: normalizedEmail,
-      Password: password,
+      Password: data.password,
     });
 
     const cognitoUser = new CognitoUser({
@@ -120,7 +128,6 @@ export default function LoginPage() {
     
     userObj.completeNewPasswordChallenge(newPassword, {}, {
       onSuccess: (result: any) => {
-        // Salva o aceite no localStorage para evitar que o modal apareça imediatamente após o login
         const email = userObj.getUsername();
         localStorage.setItem(`terms-accepted-${email}`, new Date().toISOString());
         onLoginSuccess(result);
@@ -194,19 +201,15 @@ export default function LoginPage() {
             priority 
           />
         </div>
-        <form onSubmit={handleLogin} className="space-y-5">
+        <form onSubmit={handleSubmit(handleLogin)} className="space-y-5">
           {error && <div className="p-3 bg-red-50 text-red-600 text-xs rounded-md text-center">{error}</div>}
-          <div>
-            <label className="block text-gray-700 text-sm font-bold mb-2">E-mail ou Usuário</label>
-            <input
-              type="text"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full p-3 border rounded-md focus:ring-2 focus:ring-primary-500 outline-none"
-              placeholder="Digite seu e-mail"
-              required
-            />
-          </div>
+          <Input
+            label="E-mail ou Usuário"
+            type="text"
+            placeholder="Digite seu e-mail"
+            {...register("email")}
+            error={errors.email?.message}
+          />
           <div>
             <div className="flex justify-between items-center mb-2">
               <label className="text-gray-700 text-sm font-bold">Senha</label>
@@ -214,11 +217,12 @@ export default function LoginPage() {
             </div>
             <input
               type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full p-3 border rounded-md focus:ring-2 focus:ring-primary-500 outline-none"
-              required
+              {...register("password")}
+              className={`w-full p-3 border rounded-md focus:ring-2 focus:ring-primary-500 outline-none ${
+                errors.password ? "border-red-500" : ""
+              }`}
             />
+            {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password.message}</p>}
           </div>
           <button
             type="submit"

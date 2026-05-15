@@ -9,6 +9,14 @@ import Image from "next/image";
 import Navbar from "@/components/Navbar";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { tenantSchema, userInviteSchema } from "@/lib/validations";
+import { Input } from "@/components/ui/Input";
+import { z } from "zod";
+
+type TenantFormValues = z.infer<typeof tenantSchema>;
+type UserInviteFormValues = z.infer<typeof userInviteSchema>;
 
 // Sub-componente para gerenciar notificações push por tenant
 function BellToggle({ tenantId }: { tenantId: string }) {
@@ -81,26 +89,24 @@ export default function TenantsPage() {
   // Modais
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
-  
-  const [newTenant, setNewTenant] = useState({ 
-    nome_negocio: "", 
-    nome_admin: "",
-    email_contato: "", 
-    nicho: "MEDICINA",
-    google_ads_customer_id: "",
-    use_mcc_auth: true 
-  });
-
-  const [newUser, setNewUser] = useState({
-    email: "",
-    name: "",
-    tenant_id: ""
-  });
+  const [selectedTenantForUser, setSelectedTenantForUser] = useState<string>("");
   
   const { session, logout } = useAuthStore();
   const router = useRouter();
 
   const [isMobile, setIsMobile] = useState(false);
+
+  const tenantForm = useForm<TenantFormValues>({
+    resolver: zodResolver(tenantSchema),
+    defaultValues: {
+      nicho: "MEDICINA",
+      use_mcc_auth: true
+    }
+  });
+
+  const userInviteForm = useForm<UserInviteFormValues>({
+    resolver: zodResolver(userInviteSchema),
+  });
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -131,39 +137,30 @@ export default function TenantsPage() {
     }
   };
 
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleCreate = async (data: TenantFormValues) => {
     try {
       const payload = { 
-        ...newTenant, 
-        email_contato: newTenant.email_contato.toLowerCase().trim() 
+        ...data, 
+        email_contato: data.email_contato.toLowerCase().trim() 
       };
       await TenantService.create(payload);
       setIsModalOpen(false);
-      setNewTenant({ 
-        nome_negocio: "", 
-        nome_admin: "", 
-        email_contato: "", 
-        nicho: "MEDICINA", 
-        google_ads_customer_id: "", 
-        use_mcc_auth: true 
-      });
+      tenantForm.reset();
       loadTenants();
     } catch (err) {
       alert("Falha ao criar inquilino");
     }
   };
 
-  const handleCreateUser = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleCreateUser = async (data: UserInviteFormValues) => {
     try {
       const payload = { 
-        ...newUser, 
-        email: newUser.email.toLowerCase().trim() 
+        ...data, 
+        email: data.email.toLowerCase().trim() 
       };
       await TenantService.createUser(payload);
       setIsUserModalOpen(false);
-      setNewUser({ email: "", name: "", tenant_id: "" });
+      userInviteForm.reset();
       alert("Usuário convidado com sucesso! Ele receberá um e-mail para definir a senha.");
     } catch (err) {
       alert("Falha ao criar usuário");
@@ -184,7 +181,7 @@ export default function TenantsPage() {
         newLeadLabel="Cadastrar Inquilino"
       />
 
-      <main className="p-4 md:p-8 max-w-7xl mx-auto w-full">
+      <main className="p-4 md:p-8 max-w-[1600px] mx-auto w-full">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
           <div>
             <h1 className="text-2xl font-black text-gray-900 flex items-center gap-3 uppercase tracking-tight">
@@ -212,46 +209,50 @@ export default function TenantsPage() {
         </div>
 
         {/* Desktop View: Table */}
-        <div className="bg-white rounded-lg shadow overflow-hidden hidden md:block border border-gray-200">
-          <table className="min-w-full divide-y divide-gray-200">
+        <div className="bg-white rounded-lg shadow overflow-x-auto hidden md:block border border-gray-200 custom-scrollbar">
+          <table className="min-w-full divide-y divide-gray-200 table-auto">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Negócio</th>
-                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Contato / Ads ID</th>
-                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">API Integration</th>
-                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Nicho</th>
-                <th className="px-6 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Ações</th>
+                <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap">Negócio</th>
+                <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap">Contato / Ads ID</th>
+                <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap">API Integration</th>
+                <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap">Nicho</th>
+                <th className="px-4 py-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap">Status</th>
+                <th className="px-4 py-3 text-right text-xs font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap">Ações</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredTenants.length > 0 ? (
                 filteredTenants.map((t) => (
                   <tr key={t.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 py-4 whitespace-nowrap">
                       <div className="font-bold text-gray-900">{t.nome_negocio}</div>
                       <div className="text-[10px] text-gray-400 font-mono">{t.id}</div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 py-4 whitespace-nowrap">
                       <div className="text-sm text-gray-500">{t.email_contato}</div>
                       <div className="text-xs font-bold text-primary-600">{t.google_ads_customer_id || "Não configurado"}</div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 py-4 whitespace-nowrap">
                       <ApiKeyCell apiKey={t.api_key} />
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 py-4 whitespace-nowrap">
                       <span className="bg-blue-100 text-blue-800 text-[10px] px-2 py-0.5 rounded-full font-bold">{t.nicho}</span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-4 py-4 whitespace-nowrap">
                       <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${t.status === 'ATIVO' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                         {t.status}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <td className="px-4 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex items-center gap-2 justify-end">
                         <BellToggle tenantId={t.id} />
                         <button 
-                          onClick={() => { setNewUser({ ...newUser, tenant_id: t.id }); setIsUserModalOpen(true); }}
+                          onClick={() => { 
+                            setSelectedTenantForUser(t.id);
+                            userInviteForm.setValue("tenant_id", t.id);
+                            setIsUserModalOpen(true); 
+                          }}
                           className="bg-gray-100 text-gray-700 px-3 py-1 rounded-md hover:bg-gray-200 transition-colors font-bold flex items-center gap-1"
                           title="Adicionar Usuário"
                         >
@@ -312,7 +313,11 @@ export default function TenantsPage() {
                 <div className="bg-gray-50 p-4 flex gap-2">
                   <BellToggle tenantId={t.id} />
                   <button 
-                    onClick={() => { setNewUser({ ...newUser, tenant_id: t.id }); setIsUserModalOpen(true); }}
+                    onClick={() => { 
+                      setSelectedTenantForUser(t.id);
+                      userInviteForm.setValue("tenant_id", t.id);
+                      setIsUserModalOpen(true); 
+                    }}
                     className="flex-1 bg-white border border-gray-200 text-gray-700 px-3 py-2 rounded-md hover:bg-gray-50 transition-colors font-bold text-xs flex items-center justify-center gap-2"
                   >
                     <UserPlus size={14} /> Usuário
@@ -371,21 +376,22 @@ export default function TenantsPage() {
               </div>
 
               <div className="overflow-y-auto flex-1 px-6 pb-6 custom-scrollbar">
-                <form onSubmit={handleCreate} className="space-y-4">
+                <form onSubmit={tenantForm.handleSubmit(handleCreate)} className="space-y-4">
                   <div className="bg-gray-50 p-4 rounded-md border border-gray-100 space-y-4">
                     <h3 className="text-xs font-black uppercase tracking-widest text-gray-400 mb-2">Dados da Empresa</h3>
-                    <div>
-                      <label className="block text-sm font-bold text-gray-700 mb-1 flex items-center gap-2"><Building size={14}/> Nome do Negócio</label>
-                      <input type="text" required value={newTenant.nome_negocio}
-                        onChange={(e) => setNewTenant({...newTenant, nome_negocio: e.target.value})}
-                        className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-primary-500" 
-                        placeholder="Ex: Clínica Sorriso" />
-                    </div>
+                    <Input 
+                      label="Nome do Negócio"
+                      icon={<Building size={14}/>}
+                      {...tenantForm.register("nome_negocio")}
+                      error={tenantForm.formState.errors.nome_negocio?.message}
+                      placeholder="Ex: Clínica Sorriso"
+                    />
                     <div>
                       <label className="block text-sm font-bold text-gray-700 mb-1 flex items-center gap-2"><Briefcase size={14}/> Nicho</label>
-                      <select value={newTenant.nicho}
-                        onChange={(e) => setNewTenant({...newTenant, nicho: e.target.value})}
-                        className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-primary-500 bg-white font-bold">
+                      <select 
+                        {...tenantForm.register("nicho")}
+                        className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-primary-500 bg-white font-bold"
+                      >
                         <option value="MEDICINA">Medicina / Clínicas</option>
                         <option value="ODONTOLOGIA">Odontologia</option>
                         <option value="ESTETICA">Estética / Saúde</option>
@@ -399,38 +405,43 @@ export default function TenantsPage() {
                         <option value="VAREJO">Varejo / Comércio Local</option>
                         <option value="OUTRO">Outro</option>
                       </select>
+                      {tenantForm.formState.errors.nicho && <p className="text-red-500 text-xs mt-1">{tenantForm.formState.errors.nicho.message}</p>}
                     </div>
-                    <div>
-                      <label className="block text-sm font-bold text-gray-700 mb-1 flex items-center gap-2"><Hash size={14}/> ID Google Ads</label>
-                      <input type="text" required value={newTenant.google_ads_customer_id}
-                        onChange={(e) => setNewTenant({...newTenant, google_ads_customer_id: e.target.value})}
-                        className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-primary-500" 
-                        placeholder="000-000-0000" />
-                    </div>
+                    <Input 
+                      label="ID Google Ads"
+                      icon={<Hash size={14}/>}
+                      {...tenantForm.register("google_ads_customer_id")}
+                      error={tenantForm.formState.errors.google_ads_customer_id?.message}
+                      placeholder="000-000-0000"
+                    />
                   </div>
 
                   <div className="bg-primary-50 p-4 rounded-md border border-primary-100 space-y-4">
                     <h3 className="text-xs font-black uppercase tracking-widest text-primary-400 mb-2">Usuário Administrador</h3>
-                    <div>
-                      <label className="block text-sm font-bold text-gray-700 mb-1 flex items-center gap-2"><User size={14}/> Nome Completo</label>
-                      <input type="text" required value={newTenant.nome_admin}
-                        onChange={(e) => setNewTenant({...newTenant, nome_admin: e.target.value})}
-                        className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-primary-500" 
-                        placeholder="Nome da pessoa" />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-bold text-gray-700 mb-1 flex items-center gap-2"><Mail size={14}/> E-mail de Acesso</label>
-                      <input type="email" required value={newTenant.email_contato}
-                        onChange={(e) => setNewTenant({...newTenant, email_contato: e.target.value})}
-                        className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-primary-500" 
-                        placeholder="email@exemplo.com" />
-                    </div>
+                    <Input 
+                      label="Nome Completo"
+                      icon={<User size={14}/>}
+                      {...tenantForm.register("nome_admin")}
+                      error={tenantForm.formState.errors.nome_admin?.message}
+                      placeholder="Nome da pessoa"
+                    />
+                    <Input 
+                      label="E-mail de Acesso"
+                      icon={<Mail size={14}/>}
+                      type="email"
+                      {...tenantForm.register("email_contato")}
+                      error={tenantForm.formState.errors.email_contato?.message}
+                      placeholder="email@exemplo.com"
+                    />
                   </div>
 
                   <div className="flex items-center gap-2 py-2 bg-purple-50 p-2 rounded-md">
-                    <input type="checkbox" id="mcc" checked={newTenant.use_mcc_auth}
-                      onChange={(e) => setNewTenant({...newTenant, use_mcc_auth: e.target.checked})} 
-                      className="w-4 h-4 text-primary-600 rounded" />
+                    <input 
+                      type="checkbox" 
+                      id="mcc" 
+                      {...tenantForm.register("use_mcc_auth")}
+                      className="w-4 h-4 text-primary-600 rounded" 
+                    />
                     <label htmlFor="mcc" className="text-xs text-purple-900 font-bold cursor-pointer">Usar minha MCC de Gestor</label>
                   </div>
                   
@@ -478,23 +489,26 @@ export default function TenantsPage() {
                     <X size={20} />
                   </button>
                 </div>
-                <p className="text-xs text-gray-500 mb-6">O usuário será vinculado ao tenant <strong>{tenants.find(t => t.id === newUser.tenant_id)?.nome_negocio}</strong>.</p>
+                <p className="text-xs text-gray-500 mb-6">O usuário será vinculado ao tenant <strong>{tenants.find(t => t.id === selectedTenantForUser)?.nome_negocio}</strong>.</p>
               </div>
 
               <div className="overflow-y-auto flex-1 px-6 pb-6 custom-scrollbar">
-                <form onSubmit={handleCreateUser} className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-1 flex items-center gap-2"><User size={14}/> Nome Completo</label>
-                    <input type="text" required value={newUser.name}
-                      onChange={(e) => setNewUser({...newUser, name: e.target.value})}
-                      className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-primary-500" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-1 flex items-center gap-2"><Mail size={14}/> E-mail</label>
-                    <input type="email" required value={newUser.email}
-                      onChange={(e) => setNewUser({...newUser, email: e.target.value})}
-                      className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-primary-500" />
-                  </div>
+                <form onSubmit={userInviteForm.handleSubmit(handleCreateUser)} className="space-y-4">
+                  <Input 
+                    label="Nome Completo"
+                    icon={<User size={14}/>}
+                    {...userInviteForm.register("name")}
+                    error={userInviteForm.formState.errors.name?.message}
+                  />
+                  <Input 
+                    label="E-mail"
+                    icon={<Mail size={14}/>}
+                    type="email"
+                    {...userInviteForm.register("email")}
+                    error={userInviteForm.formState.errors.email?.message}
+                  />
+                  <input type="hidden" {...userInviteForm.register("tenant_id")} />
+                  
                   <button type="submit" className="w-full bg-primary-600 text-white p-3 rounded-md font-bold hover:bg-primary-700 transition-colors shadow-lg">
                     Convidar e Criar Usuário
                   </button>

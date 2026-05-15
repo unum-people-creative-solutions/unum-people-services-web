@@ -32,6 +32,7 @@ export interface LeadData {
   email?: string;
   telefone: string;
   origem: string;
+  anotacoes?: string;
 }
 
 export const LeadService = {
@@ -60,7 +61,7 @@ export const LeadService = {
     const response = await api.put(url, { status, valor_venda: valor, data_venda: dataVenda });
     return response.data;
   },
-  update: async (id: string, data: { nome: string; email?: string; telefone: string; origem?: string; sales?: any[]; status?: string }, tenantId?: string) => {
+  update: async (id: string, data: { nome: string; email?: string; telefone: string; origem?: string; sales?: any[]; status?: string; anotacoes?: string }, tenantId?: string) => {
     let url = `/leads/${id}`;
     if (tenantId) {
       url += `?tenant_id=${tenantId}`;
@@ -82,6 +83,14 @@ export const LeadService = {
       url += `?tenant_id=${tenantId}`;
     }
     const response = await api.post(url, { valor, data });
+    return response.data;
+  },
+  delete: async (id: string, tenantId?: string) => {
+    let url = `/leads/${id}`;
+    if (tenantId) {
+      url += `?tenant_id=${tenantId}`;
+    }
+    const response = await api.delete(url);
     return response.data;
   }
 };
