@@ -1309,7 +1309,7 @@ function KanbanContent() {
                 <div className="bg-red-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
                   <AlertTriangle size={32} className="text-red-600" />
                 </div>
-                <h2 className="text-xl font-black text-red-600 mb-2">Excluir {Object.values(boardData).flat().find((l: any) => l.id === editingLeadId)?.nome || "este Lead"}?</h2>
+                <h2 className="text-xl font-black text-red-600 mb-2">Excluir {(Object.values(boardData).flat() as any[]).find((l: any) => l.id === editingLeadId)?.nome || "este Lead"}?</h2>
                 <p className="text-sm text-gray-500 font-medium px-4">Esta ação é irreversível e apagará todo o histórico de vendas e contatos.</p>
               </div>
 
