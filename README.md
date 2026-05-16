@@ -57,3 +57,9 @@ O projeto está configurado como um PWA de alta performance, pronto para ser emp
 - **Zustand** para persistência de sessão e estado global.
 - **next-pwa** para suporte PWA.
 - **Bubblewrap CLI** para geração do TWA Android.
+
+## 9. Testes
+O projeto utiliza **Vitest** e **React Testing Library** para garantir a qualidade e integridade das regras de negócio.
+- **Execução:** `npm test`
+- **Padrões:** Foco em acessibilidade (queries por Role/Label) e simulação real de comportamento do usuário via `@testing-library/user-event`.
+- **Cobertura Crítica:** Componentes de segurança (AuthGuard), fluxos de LGPD e lógica de estado global (Zustand).

@@ -43,6 +43,15 @@ Para gerar o pacote `.aab` para a Play Store, utilize os seguintes passos dentro
 - **Análise Pré-Implementação**: Antes de realizar qualquer alteração, o agente DEVE analisar as funcionalidades existentes no componente/página para garantir que nenhuma característica ou botão seja removido inadvertidamente. O objetivo é a evolução contínua sem regressões.
 - **Sincronização Otimista**: Atualizar a UI do Kanban imediatamente e tratar erros de API em background.
 - **Segurança**: Jamais expor segredos da AWS ou Google no lado do cliente. Utilizar `NEXT_PUBLIC_` apenas para chaves públicas.
+- **Flexibilidade de Negócio**: O ID Google Ads é **opcional** em todos os fluxos (Onboarding e Gestão Admin), permitindo o uso do CRM por clientes que não utilizam tráfego pago.
+
+## 🧪 Estratégia de Implementação TDD (Test Driven Development)
+O desenvolvimento deve seguir estritamente o workflow de orquestração de testes para garantir máxima qualidade e zero regressões.
+
+### Fluxo de Execução:
+1.  **Fase 1: Definição (Analista de Cenários)**: Produzir um Plano de Testes focado em Estado, Ciclo de Vida e Interação. Identificar Happy Path, Edge Cases e Acessibilidade (A11y).
+2.  **Fase 2: Execução (Engenheiro de Implementação)**: Implementar testes com **Vitest** e **RTL**. Usar seletores semânticos (`getByRole`) e simular usuários com `user-event`. É proibido usar classes CSS em assertivas.
+3.  **Fase 3: Validação (Orquestrador)**: Garantir cobertura total do plano da Fase 1 e execução de `npm test` antes da entrega.
 
 ### 🛡️ Protocolo de Engenharia Defensiva
 - **Isolamento de Tenant**: Validar se o `tenant_id` na URL corresponde ao `tenant_id` no JWT do usuário.
@@ -69,3 +78,4 @@ Para gerar o pacote `.aab` para a Play Store, utilize os seguintes passos dentro
 - `npm run dev`: Iniciar ambiente de desenvolvimento.
 - `npm run build`: Validar build de produção.
 - `npm run lint`: Verificar padrões de código.
+- `npm test`: Executar suíte de testes unitários e de integração.

@@ -9,12 +9,17 @@ import { useRouter } from "next/navigation";
 import { jwtDecode } from "jwt-decode";
 import Link from "next/link";
 import Image from "next/image";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { loginSchema } from "@/lib/validations";
+import { Input } from "@/components/ui/Input";
+import { z } from "zod";
+
+type LoginFormValues = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [userObj, setUserObj] = useState<any>(null);
   const [loading, setLoading] = useState(false);
@@ -22,6 +27,14 @@ export default function LoginPage() {
   
   const setSession = useAuthStore((state) => state.setSession);
   const router = useRouter();
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LoginFormValues>({
+    resolver: zodResolver(loginSchema),
+  });
 
   const onLoginSuccess = async (result: any) => {
     const idToken = result.getIdToken().getJwtToken();
@@ -46,7 +59,6 @@ export default function LoginPage() {
       isGlobalAdmin
     });
 
-    // Verificamos se o usuário (Admin ou Comum) tem configuração na base
     try {
       setLoading(true);
       console.log("[Login] Verificando se o usuário possui configuração no banco de dados...");
@@ -57,7 +69,14 @@ export default function LoginPage() {
         console.log("[Login] Redirecionando para Onboarding (sem registros na base)");
         router.push("/onboarding");
       } else {
-        // Se já tiver registros, redireciona baseado na role
+        // Sincroniza o nome do inquilino primário na sessão
+        const primaryTenant = myTenants[0];
+        setSession({
+          ...sessionData,
+          tenantId: primaryTenant.id,
+          tenantName: primaryTenant.nome_negocio,
+        });
+
         if (isGlobalAdmin) {
           console.log("[Login] Redirecionando GlobalAdmin para /tenants");
           router.push("/tenants");
@@ -68,8 +87,6 @@ export default function LoginPage() {
       }
     } catch (err) {
       console.error("Erro ao validar conta:", err);
-      // Fallback de segurança em caso de erro na API: 
-      // Se for GlobalAdmin permite seguir para /tenants, senão /kanban
       if (isGlobalAdmin) router.push("/tenants");
       else router.push("/kanban");
     } finally {
@@ -77,16 +94,15 @@ export default function LoginPage() {
     }
   };
 
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleLogin = (data: LoginFormValues) => {
     setLoading(true);
     setError("");
 
-    const normalizedEmail = email.toLowerCase().trim();
+    const normalizedEmail = data.email.toLowerCase().trim();
 
     const authDetails = new AuthenticationDetails({
       Username: normalizedEmail,
-      Password: password,
+      Password: data.password,
     });
 
     const cognitoUser = new CognitoUser({
@@ -120,7 +136,6 @@ export default function LoginPage() {
     
     userObj.completeNewPasswordChallenge(newPassword, {}, {
       onSuccess: (result: any) => {
-        // Salva o aceite no localStorage para evitar que o modal apareça imediatamente após o login
         const email = userObj.getUsername();
         localStorage.setItem(`terms-accepted-${email}`, new Date().toISOString());
         onLoginSuccess(result);
@@ -184,40 +199,44 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
       <div className="bg-white p-8 rounded-lg shadow-xl w-full max-w-md border-t-4 border-primary-600">
-        <div className="flex justify-center mb-10">
+        <div className="flex flex-col items-center mb-10 text-center">
           <Image 
-            src="/images/logo_texto.png" 
+            src="/images/logo_simbolo.png" 
             alt="Unum People" 
-            width={240} 
-            height={80} 
-            className="object-contain drop-shadow-sm"
+            width={60} 
+            height={60} 
+            className="object-contain mb-4"
             priority 
           />
+          <h1 className="text-3xl font-black text-primary-900 uppercase tracking-tighter">
+            Unum People <span className="text-primary-600 font-black">CRM</span>
+          </h1>
+          <p className="text-gray-500 text-xs font-bold uppercase tracking-widest mt-2 opacity-60">
+            Inteligência em Vendas
+          </p>
         </div>
-        <form onSubmit={handleLogin} className="space-y-5">
+        <form onSubmit={handleSubmit(handleLogin)} className="space-y-5">
           {error && <div className="p-3 bg-red-50 text-red-600 text-xs rounded-md text-center">{error}</div>}
-          <div>
-            <label className="block text-gray-700 text-sm font-bold mb-2">E-mail ou Usuário</label>
-            <input
-              type="text"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full p-3 border rounded-md focus:ring-2 focus:ring-primary-500 outline-none"
-              placeholder="Digite seu e-mail"
-              required
-            />
-          </div>
-          <div>
-            <div className="flex justify-between items-center mb-2">
-              <label className="text-gray-700 text-sm font-bold">Senha</label>
-              <Link href="/forgot-password" className="text-xs text-primary-600 hover:underline">Esqueci a senha</Link>
-            </div>
-            <input
+          <Input
+            label="E-mail ou Usuário"
+            type="text"
+            placeholder="Digite seu e-mail"
+            {...register("email")}
+            error={errors.email?.message}
+          />
+          <div className="relative">
+            <Link 
+              href="/forgot-password" 
+              className="absolute right-0 top-0 text-xs text-primary-600 hover:underline z-10"
+            >
+              Esqueci a senha
+            </Link>
+            <Input
+              label="Senha"
               type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full p-3 border rounded-md focus:ring-2 focus:ring-primary-500 outline-none"
-              required
+              placeholder="Digite sua senha"
+              {...register("password")}
+              error={errors.password?.message}
             />
           </div>
           <button

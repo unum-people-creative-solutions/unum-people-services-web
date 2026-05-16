@@ -1,23 +1,35 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState, useId } from "react";
 import { useRouter } from "next/navigation";
 import { TenantService } from "@/services/api";
 import { useAuthStore } from "@/store/authStore";
 import Image from "next/image";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { onboardingSchema } from "@/lib/validations";
+import { Input } from "@/components/ui/Input";
+import { z } from "zod";
+
+type OnboardingFormValues = z.infer<typeof onboardingSchema>;
 
 export default function OnboardingPage() {
-  const [nomeNegocio, setNomeNegocio] = useState("");
-  const [nicho, setNicho] = useState("");
-  const [googleAdsId, setGoogleAdsId] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const nichoId = useId();
   
   const { session, setSession } = useAuthStore();
   const router = useRouter();
 
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<OnboardingFormValues>({
+    resolver: zodResolver(onboardingSchema),
+  });
+
   useEffect(() => {
-    // Se o usuário já tiver tenants no banco, redireciona para o Kanban
     const checkTenants = async () => {
       try {
         const myTenants = await TenantService.listMyTenants();
@@ -36,8 +48,7 @@ export default function OnboardingPage() {
     }
   }, [session, router]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const onSubmit = async (data: OnboardingFormValues) => {
     setLoading(true);
     setError("");
 
@@ -45,17 +56,17 @@ export default function OnboardingPage() {
       if (!session) return;
 
       const tenant = await TenantService.create({
-        nome_negocio: nomeNegocio,
+        nome_negocio: data.nome_negocio,
         nome_admin: session.name,
         email_contato: session.email,
-        nicho: nicho,
-        google_ads_customer_id: googleAdsId || undefined,
+        nicho: data.nicho,
+        google_ads_customer_id: data.google_ads_customer_id || undefined,
       });
 
-      // Atualiza a sessão com o novo tenantId
       setSession({
         ...session,
         tenantId: tenant.id,
+        tenantName: tenant.nome_negocio,
       });
 
       router.push("/kanban");
@@ -78,28 +89,24 @@ export default function OnboardingPage() {
           Parece que você ainda não configurou seu negócio. Preencha os dados abaixo para começar.
         </p>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           {error && <div className="p-4 bg-red-50 text-red-600 text-sm rounded-md border border-red-100">{error}</div>}
           
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Nome do seu Negócio</label>
-            <input
-              type="text"
-              value={nomeNegocio}
-              onChange={(e) => setNomeNegocio(e.target.value)}
-              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 outline-none transition-all"
-              placeholder="Ex: Minha Empresa de Tráfego"
-              required
-            />
-          </div>
+          <Input 
+            label="Nome do seu Negócio"
+            {...register("nome_negocio")}
+            error={errors.nome_negocio?.message}
+            placeholder="Ex: Minha Empresa de Tráfego"
+          />
 
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Nicho / Área de Atuação</label>
+            <label htmlFor={nichoId} className="block text-sm font-semibold text-gray-700 mb-2">Nicho / Área de Atuação</label>
             <select
-              value={nicho}
-              onChange={(e) => setNicho(e.target.value)}
-              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 outline-none transition-all bg-white"
-              required
+              id={nichoId}
+              {...register("nicho")}
+              className={`w-full p-3 border rounded-md focus:ring-2 focus:ring-primary-500 outline-none transition-all bg-white ${
+                errors.nicho ? "border-red-500" : "border-gray-300"
+              }`}
             >
               <option value="">Selecione um nicho</option>
               <option value="Serviços Médicos">Serviços Médicos</option>
@@ -109,19 +116,16 @@ export default function OnboardingPage() {
               <option value="E-commerce">E-commerce</option>
               <option value="Outros">Outros</option>
             </select>
+            {errors.nicho && <p className="text-red-500 text-xs mt-1">{errors.nicho.message}</p>}
           </div>
 
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Google Ads Customer ID (Opcional)</label>
-            <input
-              type="text"
-              value={googleAdsId}
-              onChange={(e) => setGoogleAdsId(e.target.value)}
-              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-primary-500 outline-none transition-all"
-              placeholder="000-000-0000"
-            />
-            <p className="mt-1 text-xs text-gray-400">Você poderá configurar isso depois nas configurações.</p>
-          </div>
+          <Input 
+            label="Google Ads Customer ID (Opcional)"
+            {...register("google_ads_customer_id")}
+            error={errors.google_ads_customer_id?.message}
+            placeholder="000-000-0000"
+          />
+          <p className="mt-[-1rem] text-xs text-gray-400">Você poderá configurar isso depois nas configurações.</p>
 
           <button
             type="submit"

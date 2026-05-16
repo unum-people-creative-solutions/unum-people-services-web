@@ -133,14 +133,16 @@ export default function SettingsPage() {
           {/* Tenant Info */}
           <section className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
             <h2 className="text-sm font-black uppercase tracking-widest text-gray-400 mb-6 flex items-center gap-2">
-              <Building size={16} /> Vínculo Corporativo
+              <Building size={16} /> Vínculo Profissional
             </h2>
             
             <div className="space-y-4">
               <div className="flex items-center justify-between p-4 bg-primary-50 rounded-xl border border-primary-100">
                 <div>
-                  <p className="text-[10px] font-black text-primary-400 uppercase">Seu Inquilino (Tenant)</p>
-                  <p className="font-black text-primary-900 text-lg leading-tight">{session?.tenantName || "Unum People Central"}</p>
+                  <p className="text-[10px] font-black text-primary-400 uppercase">Nome do Negócio / Empresa</p>
+                  <p className="font-black text-primary-900 text-lg leading-tight">
+                    {session?.tenantName || "Não Identificado"}
+                  </p>
                 </div>
                 <Building size={32} className="text-primary-200" />
               </div>
@@ -148,7 +150,7 @@ export default function SettingsPage() {
               <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-100">
                 <Shield size={18} className="text-gray-400" />
                 <div>
-                  <span className="text-xs font-bold text-gray-500 block">Nível de Acesso</span>
+                  <span className="text-xs font-bold text-gray-500 block">Nível de Autoridade</span>
                   <span className="font-black text-gray-700 uppercase tracking-tighter">{session?.role || "Usuário"}</span>
                 </div>
               </div>

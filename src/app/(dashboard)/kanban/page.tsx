@@ -5,13 +5,21 @@ import { useSearchParams } from "next/navigation";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import api, { LeadService, TenantService, LeadData } from "@/services/api";
 import { useAuthStore } from "@/store/authStore";
-import { Plus, X, LogOut, Settings, DollarSign, AlertCircle, Calendar, Eye, EyeOff, Users, Edit2, Mail, Phone, User, Building, Search, TrendingUp, RefreshCw, HelpCircle, Tag, ExternalLink, LayoutGrid, ArrowRightLeft } from "lucide-react";
+import { Plus, X, LogOut, Settings, DollarSign, AlertCircle, Calendar, Eye, EyeOff, Users, Edit2, Mail, Phone, User, Building, Search, TrendingUp, RefreshCw, HelpCircle, Tag, ExternalLink, LayoutGrid, ArrowRightLeft, MessageCircle, Clock, Trash2, AlertTriangle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import Navbar from "@/components/Navbar";
 import { motion, AnimatePresence } from "framer-motion";
 import * as XLSX from "xlsx";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { leadSchema } from "@/lib/validations";
+import { Input } from "@/components/ui/Input";
+import { PhoneInput } from "@/components/ui/PhoneInput";
+import { z } from "zod";
+
+type LeadFormValues = z.infer<typeof leadSchema>;
 
 const COLUMNS = [
   { id: "NOVO", title: "Novos Leads", order: 0 },
@@ -57,9 +65,52 @@ const parseSafeDate = (dateStr: any) => {
   return isNaN(d.getTime()) ? new Date() : d;
 };
 
+// Helper para Inatividade
+const getInactivityStatus = (updatedAt: any, columnId: string) => {
+  // Cores (Classes completas para o Tailwind extrair)
+  const BLUE = "bg-blue-600";
+  const ORANGE = "bg-orange-500";
+  const RED = "bg-red-600";
+
+  const defaultStatus = { color: BLUE, animate: false, message: "", showTooltip: false };
+
+  if (!["NOVO", "ATENDIMENTO", "AGENDADO"].includes(columnId)) {
+    return defaultStatus;
+  }
+
+  if (!updatedAt) return defaultStatus;
+
+  const lastUpdate = new Date(updatedAt);
+  const now = new Date();
+  
+  if (isNaN(lastUpdate.getTime())) return defaultStatus;
+
+  const diffMs = now.getTime() - lastUpdate.getTime();
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+
+  if (diffHours >= 48) {
+    return { 
+      color: RED, 
+      animate: false, 
+      message: `Inatividade crítica: mais de ${diffHours}h sem atualizações. Recomendado: Contato urgente.`,
+      showTooltip: true 
+    };
+  }
+  if (diffHours >= 24) {
+    return { 
+      color: ORANGE, 
+      animate: true, 
+      message: `Atenção: ${diffHours}h de inatividade. Recomendado: Enviar follow-up.`,
+      showTooltip: true 
+    };
+  }
+  
+  return defaultStatus;
+};
+
 function KanbanContent() {
   const searchParams = useSearchParams();
-  const { session, logout } = useAuthStore();
+  const { session, logout, setSession } = useAuthStore();
   const router = useRouter();
 
   const [boardData, setBoardData] = useState<any>({});
@@ -72,15 +123,32 @@ function KanbanContent() {
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isNewSaleModalOpen, setIsNewSaleModalOpen] = useState(false);
   const [isQuickMoveModalOpen, setIsQuickMoveModalOpen] = useState(false);
+  const [isDeleteConfirmModalOpen, setIsDeleteConfirmModalOpen] = useState(false);
+  const [deleteConfirmationText, setDeleteConfirmText] = useState("");
   
   const [showRevenue, setShowRevenue] = useState(false);
   
-  const [newLead, setNewLead] = useState<LeadData>({ nome: "", email: "", telefone: "", origem: "Indicação" });
-  const [editingLead, setEditingLead] = useState<any>(null);
   const [quickMoveLead, setQuickMoveLead] = useState<any>(null);
   const [saleValueMasked, setSaleValueMasked] = useState("");
   const [saleDate, setSaleDate] = useState(new Date().toISOString().split('T')[0]);
   const [pendingMove, setPendingMove] = useState<any>(null);
+
+  // Forms
+  const createLeadForm = useForm<LeadFormValues>({
+    resolver: zodResolver(leadSchema),
+    defaultValues: {
+      origem: "Indicação"
+    }
+  });
+
+  const editLeadForm = useForm<LeadFormValues>({
+    resolver: zodResolver(leadSchema),
+  });
+
+  const [editingLeadId, setEditingLeadId] = useState<string | null>(null);
+  const [editingLeadSales, setEditingLeadSales] = useState<any[]>([]);
+  const [editingLeadStatus, setEditingLeadStatus] = useState<string>("");
+  const [editingLeadSource, setEditingLeadSource] = useState<string>("");
 
   // Estados para Busca de Nova Venda
   const [customerSearchQuery, setCustomerSearchQuery] = useState("");
@@ -221,19 +289,24 @@ function KanbanContent() {
 
   const loadAccountData = useCallback(async () => {
     try {
-      let data = session?.role === "GlobalAdmin" ? await TenantService.list() : await TenantService.listMyTenants();
+      // Usamos referências específicas da sessão para evitar loops ao atualizar o tenantName
+      const userRole = session?.role;
+      const sessionTenantId = session?.tenantId;
+
+      let data = userRole === "GlobalAdmin" ? await TenantService.list() : await TenantService.listMyTenants();
       const tenantsData = data || [];
       setTenants(tenantsData);
+
       if (!selectedTenantId && tenantsData.length > 0) {
         setSelectedTenantId(tenantsData[0].id);
-      } else if (!selectedTenantId && session?.tenantId) {
-        setSelectedTenantId(session.tenantId);
+      } else if (!selectedTenantId && sessionTenantId) {
+        setSelectedTenantId(sessionTenantId);
       }
     } catch (err) { 
       console.error(err);
       setTenants([]);
     }
-  }, [session, selectedTenantId]);
+  }, [session?.role, session?.tenantId, selectedTenantId]);
 
   const loadLeads = useCallback(async (statusListOrSilent: string[] | boolean = COLUMNS.map(c => c.id), silentParam = false) => {
     if (!selectedTenantId) return;
@@ -287,45 +360,76 @@ function KanbanContent() {
 
     if (tenants.length > 0) {
       const found = tenants.find(t => t.id === selectedTenantId);
-      if (found) setCurrentTenantName(found.nome_negocio);
+      if (found) {
+        setCurrentTenantName(found.nome_negocio);
+        
+        // Sincroniza o nome na sessão global se houver divergência
+        if (session && found.nome_negocio !== session.tenantName) {
+          setSession({
+            ...session,
+            tenantId: selectedTenantId,
+            tenantName: found.nome_negocio
+          });
+        }
+      }
     }
-  }, [selectedMonth, selectedYear, selectedTenantId, tenants, loadLeads]);
+  }, [selectedMonth, selectedYear, selectedTenantId, tenants, loadLeads, session, setSession]);
 
   const handleLogout = () => {
     logout();
     router.push("/login");
   };
 
-  const handleCreateLead = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleCreateLead = async (data: LeadFormValues) => {
     try {
-      await LeadService.create(newLead, selectedTenantId);
+      await LeadService.create(data, selectedTenantId);
       setIsModalOpen(false);
-      setNewLead({ nome: "", email: "", telefone: "", origem: "Indicação" });
+      createLeadForm.reset();
       loadLeads();
     } catch (err) { alert("Falha ao criar lead"); }
   };
 
   const handleEditClick = (lead: any) => {
-    setEditingLead({ ...lead, sales: lead.sales || [] });
+    setEditingLeadId(lead.id);
+    setEditingLeadSales(lead.sales || []);
+    setEditingLeadStatus(lead.status);
+    setEditingLeadSource(lead.source || "");
+    
+    editLeadForm.reset({
+      nome: lead.nome,
+      email: lead.email || "",
+      telefone: lead.telefone,
+      origem: lead.origem,
+      anotacoes: lead.anotacoes || ""
+    });
+    
     setIsEditModalOpen(true);
   };
 
-  const handleUpdateLead = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleUpdateLead = async (data: LeadFormValues) => {
+    if (!editingLeadId) return;
     try {
-      await LeadService.update(editingLead.id, {
-        nome: editingLead.nome,
-        email: editingLead.email,
-        telefone: editingLead.telefone,
-        origem: editingLead.origem,
-        sales: editingLead.sales,
-        status: editingLead.status
+      await LeadService.update(editingLeadId, {
+        ...data,
+        sales: editingLeadSales,
+        status: editingLeadStatus
       }, selectedTenantId);
       setIsEditModalOpen(false);
-      setEditingLead(null);
+      setEditingLeadId(null);
       loadLeads(true);
     } catch (err) { alert("Falha ao atualizar lead"); }
+  };
+
+  const handleDeleteLead = async () => {
+    if (!editingLeadId || deleteConfirmationText.toLowerCase() !== "excluir") return;
+    try {
+      await LeadService.delete(editingLeadId, selectedTenantId);
+      setIsDeleteConfirmModalOpen(false);
+      setIsEditModalOpen(false);
+      setEditingLeadId(null);
+      setDeleteConfirmText("");
+      loadLeads(true);
+    } catch (err) { alert("Falha ao excluir lead"); }
   };
 
   const handleSearchCustomers = async (query: string) => {
@@ -575,43 +679,98 @@ function KanbanContent() {
                         
                         return (
                           <Draggable key={lead.id} draggableId={lead.id} index={index}>
-                            {(provided) => (
-                              <div ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps} className="bg-white p-4 rounded shadow-sm mb-3 border-l-4 border-primary-500 hover:shadow-md group relative transition-all w-full overflow-hidden">
-                                <div className="absolute top-2 right-2 flex gap-1">
-                                  <button 
-                                    onClick={() => handleEditClick(lead)} 
-                                    className="p-1.5 text-gray-400 hover:text-primary-600 md:opacity-0 md:group-hover:opacity-100 transition-all bg-gray-50 md:bg-transparent rounded-md active:bg-gray-100"
-                                  >
-                                    <Edit2 size={14} />
-                                  </button>
-                                  <button 
-                                    onClick={() => { setQuickMoveLead(lead); setIsQuickMoveModalOpen(true); }} 
-                                    className="md:hidden p-1.5 text-primary-600 bg-primary-50 rounded-md active:bg-primary-100 transition-colors"
-                                  >
-                                    <ArrowRightLeft size={14} />
-                                  </button>
+                            {(provided) => {
+                              // Tenta encontrar a data de atualização mais recente
+                              const lastUpdateDate = lead.updated_at || lead.updatedAt || lead.created_at || lead.createdAt;
+                              const status = getInactivityStatus(lastUpdateDate, col.id);
+                              
+                              return (
+                                <div ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps} className="bg-white rounded shadow-sm mb-3 hover:shadow-md group relative transition-all w-full overflow-hidden border border-gray-100">
+                                  {/* Indicador de Inatividade (Linha Lateral) */}
+                                  <div className="absolute left-0 top-0 bottom-0 w-1.5 z-10 group/indicator cursor-help">
+                                    <div className={`absolute inset-0 ${status.color} ${status.animate ? 'animate-pulse' : ''}`} />
+                                    {status.showTooltip && (
+                                      <div className="absolute left-3 top-2 w-48 opacity-0 group-hover/indicator:opacity-100 pointer-events-none transition-all duration-200 z-[60] translate-x-1 group-hover/indicator:translate-x-0">
+                                        <div className="bg-gray-900/95 text-white text-[10px] p-2.5 rounded-xl shadow-2xl border border-gray-700 backdrop-blur-md ring-1 ring-white/10">
+                                          <p className="font-medium leading-relaxed">{status.message}</p>
+                                          <div className="absolute left-[-4px] top-3 w-2 h-2 bg-gray-900 rotate-45 border-l border-b border-gray-700"></div>
+                                        </div>
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  <div className="p-4 pl-5">
+                                    <div className="absolute top-2 right-2 flex gap-1">
+                                      <button 
+                                        onClick={() => handleEditClick(lead)} 
+                                        className="p-1.5 text-gray-400 hover:text-primary-600 md:opacity-0 md:group-hover:opacity-100 transition-all bg-gray-50 md:bg-transparent rounded-md active:bg-gray-100"
+                                      >
+                                        <Edit2 size={14} />
+                                      </button>
+                                      <button 
+                                        onClick={() => { setQuickMoveLead(lead); setIsQuickMoveModalOpen(true); }} 
+                                        className="md:hidden p-1.5 text-primary-600 bg-primary-50 rounded-md active:bg-primary-100 transition-colors"
+                                      >
+                                        <ArrowRightLeft size={14} />
+                                      </button>
+                                    </div>
+                                    <div className="font-bold text-gray-900 group-hover:text-primary-600 transition-colors truncate pr-16" title={lead.nome}>{lead.nome}</div>
+                                    
+                                    <div className="flex items-center justify-between mt-1 gap-2">
+                                      <div className="text-xs text-gray-500 truncate flex-1">{lead.telefone}</div>
+                                      <div className="flex gap-1">
+                                        {lead.telefone && (
+                                          <a 
+                                            href={`https://wa.me/${lead.telefone.replace(/\D/g, "")}`} 
+                                            target="_blank" 
+                                            rel="noopener noreferrer"
+                                            className="p-1 text-green-600 hover:bg-green-50 rounded transition-colors"
+                                            title="WhatsApp"
+                                            onClick={(e) => e.stopPropagation()}
+                                          >
+                                            <MessageCircle size={14} />
+                                          </a>
+                                        )}
+                                        {lead.email && (
+                                          <a 
+                                            href={`mailto:${lead.email}`}
+                                            className="p-1 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                                            title="E-mail"
+                                            onClick={(e) => e.stopPropagation()}
+                                          >
+                                            <Mail size={14} />
+                                          </a>
+                                        )}
+                                      </div>
+                                    </div>
+
+                                    {monthTotal > 0 && (
+                                      <div className="text-xs font-black text-green-600 mt-2">
+                                        {formatCurrency(monthTotal)}
+                                      </div>
+                                    )}
+
+                                    {totalLtv > monthTotal && (
+                                      <div className="text-[9px] text-primary-500 font-bold uppercase mt-1">
+                                        LTV: {formatCurrency(totalLtv)}
+                                      </div>
+                                    )}
+
+                                    <div className="flex flex-col gap-1 mt-2">
+                                      {lead.origem && (
+                                        <div className="text-[10px] text-gray-400 italic flex items-center gap-1 truncate">
+                                          <Tag size={10} className="shrink-0" /> <span className="truncate">{lead.origem}</span>
+                                        </div>
+                                      )}
+                                      <div className="text-[9px] text-gray-400 flex items-center gap-1">
+                                        <Clock size={9} className="shrink-0" /> 
+                                        <span>Atualizado em {new Date(lastUpdateDate || new Date()).toLocaleDateString('pt-BR')}</span>
+                                      </div>
+                                    </div>
+                                  </div>
                                 </div>
-                                <div className="font-bold text-gray-900 group-hover:text-primary-600 transition-colors truncate pr-16" title={lead.nome}>{lead.nome}</div>
-                                <div className="text-xs text-gray-500 mt-1 truncate">{lead.telefone}</div>
-                                {monthTotal > 0 && (
-                                  <div className="text-xs font-black text-green-600 mt-2">
-                                    {formatCurrency(monthTotal)}
-                                  </div>
-                                )}
-
-                                {totalLtv > monthTotal && (
-                                  <div className="text-[9px] text-primary-500 font-bold uppercase mt-1">
-                                    LTV: {formatCurrency(totalLtv)}
-                                  </div>
-                                )}
-
-                                {lead.origem && (
-                                  <div className="text-[10px] text-gray-400 mt-2 italic flex items-center gap-1 truncate">
-                                    <Tag size={10} className="shrink-0" /> <span className="truncate">{lead.origem}</span>
-                                  </div>
-                                )}
-                              </div>
-                            )}
+                              );
+                            }}
                           </Draggable>
                         );
                       })}
@@ -660,27 +819,54 @@ function KanbanContent() {
               </div>
 
               <div className="overflow-y-auto flex-1 px-6 pb-6 custom-scrollbar">
-                <form onSubmit={handleCreateLead} className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-1">Nome</label>
-                    <input type="text" required value={newLead.nome} onChange={(e) => setNewLead({...newLead, nome: e.target.value})} className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-primary-500" placeholder="Nome do cliente" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-1">E-mail</label>
-                    <input type="email" value={newLead.email} onChange={(e) => setNewLead({...newLead, email: e.target.value})} className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-primary-500" placeholder="email@exemplo.com" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 mb-1">WhatsApp</label>
-                    <input type="text" required value={newLead.telefone} onChange={(e) => setNewLead({...newLead, telefone: e.target.value})} className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-primary-500" placeholder="(00) 00000-0000" />
-                  </div>
+                <form onSubmit={createLeadForm.handleSubmit(handleCreateLead)} className="space-y-4">
+                  <Input 
+                    label="Nome" 
+                    {...createLeadForm.register("nome")}
+                    error={createLeadForm.formState.errors.nome?.message}
+                    placeholder="Nome do cliente"
+                  />
+                  <Input 
+                    label="E-mail" 
+                    type="email"
+                    {...createLeadForm.register("email")}
+                    error={createLeadForm.formState.errors.email?.message}
+                    placeholder="email@exemplo.com"
+                  />
+                  <Controller
+                    control={createLeadForm.control}
+                    name="telefone"
+                    render={({ field }) => (
+                      <PhoneInput
+                        label="WhatsApp"
+                        {...field}
+                        error={createLeadForm.formState.errors.telefone?.message}
+                        placeholder="(00) 00000-0000"
+                      />
+                    )}
+                  />
                   <div>
                     <label className="block text-sm font-bold text-gray-700 mb-1">Origem</label>
-                    <select value={newLead.origem} onChange={(e) => setNewLead({...newLead, origem: e.target.value})} className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-primary-500">
+                    <select 
+                      {...createLeadForm.register("origem")}
+                      className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-primary-500 bg-white"
+                    >
                       <option value="Indicação">Indicação</option>
                       <option value="WhatsApp">WhatsApp</option>
                       <option value="Instagram">Instagram</option>
                       <option value="Facebook">Facebook</option>
-                      <option value="Outro">Outro</option>                </select>
+                      <option value="Outro">Outro</option>                
+                    </select>
+                    {createLeadForm.formState.errors.origem && <p className="text-red-500 text-xs mt-1">{createLeadForm.formState.errors.origem.message}</p>}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1">Anotações</label>
+                    <textarea 
+                      {...createLeadForm.register("anotacoes")}
+                      className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-primary-500 min-h-[80px] text-sm"
+                      placeholder="Observações iniciais..."
+                    />
+                    {createLeadForm.formState.errors.anotacoes && <p className="text-red-500 text-xs mt-1">{createLeadForm.formState.errors.anotacoes.message}</p>}
                   </div>
                   <button type="submit" className="w-full bg-primary-600 text-white p-3 rounded-md font-bold hover:bg-primary-700 shadow-lg transition-all mt-4">Criar Lead</button>
                 </form>
@@ -773,9 +959,8 @@ function KanbanContent() {
         )}
       </AnimatePresence>
 
-      {/* Modal de Edição (Lista de Vendas) */}
       <AnimatePresence>
-        {isEditModalOpen && editingLead && (
+        {isEditModalOpen && editingLeadId && (
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -803,33 +988,59 @@ function KanbanContent() {
                 <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-4 md:hidden" />
                 <div className="flex justify-between items-center mb-6 border-b pb-4">
                   <h2 className="text-lg font-bold flex items-center gap-2"><Edit2 size={18} className="text-primary-600" /> Editar Lead</h2>
-                  <button onClick={() => setIsEditModalOpen(false)}><X size={20} /></button>
+                  <div className="flex items-center gap-2">
+                    <button 
+                      type="button" 
+                      onClick={() => setIsDeleteConfirmModalOpen(true)}
+                      className="p-2 text-red-500 hover:bg-red-50 rounded-full transition-colors"
+                      title="Excluir Lead"
+                    >
+                      <Trash2 size={20} />
+                    </button>
+                    <button onClick={() => setIsEditModalOpen(false)}><X size={20} /></button>
+                  </div>
                 </div>
               </div>
 
               <div className="overflow-y-auto flex-1 px-6 pb-6 custom-scrollbar">
-                <form onSubmit={handleUpdateLead} className="space-y-4">
+                <form onSubmit={editLeadForm.handleSubmit(handleUpdateLead)} className="space-y-4">
                   <div className="grid grid-cols-1 gap-4">
-                    <div><label className="text-xs font-bold text-gray-500 uppercase">Nome</label>
-                      <input type="text" value={editingLead.nome} onChange={(e) => setEditingLead({...editingLead, nome: e.target.value})} className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-primary-500" /></div>
-                    <div><label className="text-xs font-bold text-gray-500 uppercase">E-mail</label>
-                      <input type="email" value={editingLead.email || ""} onChange={(e) => setEditingLead({...editingLead, email: e.target.value})} className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-primary-500" /></div>
-                    <div><label className="text-xs font-bold text-gray-500 uppercase">WhatsApp</label>
-                      <input type="text" value={editingLead.telefone} onChange={(e) => setEditingLead({...editingLead, telefone: e.target.value})} className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-primary-500" /></div>
+                    <Input 
+                      label="Nome"
+                      {...editLeadForm.register("nome")}
+                      error={editLeadForm.formState.errors.nome?.message}
+                    />
+                    <Input 
+                      label="E-mail"
+                      type="email"
+                      {...editLeadForm.register("email")}
+                      error={editLeadForm.formState.errors.email?.message}
+                    />
+                    <Controller
+                      control={editLeadForm.control}
+                      name="telefone"
+                      render={({ field }) => (
+                        <PhoneInput
+                          label="WhatsApp"
+                          {...field}
+                          error={editLeadForm.formState.errors.telefone?.message}
+                          placeholder="(00) 00000-0000"
+                        />
+                      )}
+                    />
                     <div>
                       <label className="text-xs font-bold text-gray-500 uppercase">Origem</label>
-                      {editingLead?.source === "LANDING_PAGE" ? (
+                      {editingLeadSource === "LANDING_PAGE" ? (
                         <div className="flex flex-col gap-1">
                           <div className="w-full border p-2 rounded-md bg-gray-50 text-gray-500 italic flex items-start gap-2 overflow-hidden">
                             <Tag size={14} className="shrink-0 mt-0.5" /> 
-                            <span className="flex-1 break-all">{editingLead.origem}</span>
+                            <span className="flex-1 break-all">{editLeadForm.getValues("origem")}</span>
                           </div>
                           <span className="text-[10px] text-amber-600 font-medium">Leads vindos do site não podem ter a origem alterada.</span>
                         </div>
                       ) : (
                         <select 
-                          value={editingLead.origem || "Indicação"} 
-                          onChange={(e) => setEditingLead({...editingLead, origem: e.target.value})} 
+                          {...editLeadForm.register("origem")}
                           className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-primary-500 bg-white"
                         >
                           <option value="Indicação">Indicação</option>
@@ -839,17 +1050,30 @@ function KanbanContent() {
                           <option value="Outro">Outro</option>
                         </select>
                       )}
+                      {editLeadForm.formState.errors.origem && <p className="text-red-500 text-xs mt-1">{editLeadForm.formState.errors.origem.message}</p>}
+                    </div>
+                    <div>
+                      <label className="text-xs font-bold text-gray-500 uppercase">Anotações</label>
+                      <textarea 
+                        {...editLeadForm.register("anotacoes")}
+                        className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-primary-500 min-h-[100px] text-sm"
+                        placeholder="Adicione observações sobre este lead..."
+                      />
+                      {editLeadForm.formState.errors.anotacoes && <p className="text-red-500 text-xs mt-1">{editLeadForm.formState.errors.anotacoes.message}</p>}
                     </div>
                   </div>
                   
                   <div className="mt-8 border-t pt-4">
                     <div className="flex justify-between items-center mb-4">
                       <h3 className="text-sm font-black text-gray-700 uppercase flex items-center gap-2"><DollarSign size={16} className="text-green-600" /> Vendas do mês</h3>
-                      {editingLead.status === "GANHO" && (
+                      {editingLeadStatus === "GANHO" && (
                         <button 
                           type="button"
                           onClick={() => {
-                            setSelectedCustomer(editingLead);
+                            // find lead in boardData to get current object for selection
+                            const allLeads = Object.values(boardData).flat() as any[];
+                            const lead = allLeads.find(l => l.id === editingLeadId);
+                            if (lead) setSelectedCustomer(lead);
                             setIsNewSaleModalOpen(true);
                             setIsEditModalOpen(false);
                           }}
@@ -860,7 +1084,7 @@ function KanbanContent() {
                       )}
                     </div>
                     <div className="space-y-2">
-                      {editingLead.sales?.length > 0 ? editingLead.sales.map((s: any) => (
+                      {editingLeadSales?.length > 0 ? editingLeadSales.map((s: any) => (
                         <div key={s.id} className="flex justify-between items-center bg-gray-50 p-3 rounded-md border">
                           <span className="text-xs font-bold text-gray-400">{parseSafeDate(s.data).toLocaleDateString('pt-BR')}</span>
                           <span className="font-black text-green-700">{formatCurrency(s.valor)}</span>
@@ -1057,6 +1281,71 @@ function KanbanContent() {
               >
                 Cancelar
               </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Modal de Confirmação de Exclusão */}
+      <AnimatePresence>
+        {isDeleteConfirmModalOpen && editingLeadId && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => { setIsDeleteConfirmModalOpen(false); setDeleteConfirmText(""); }}
+            className="fixed inset-0 bg-black/60 flex items-end md:items-center justify-center md:p-4 z-[80] backdrop-blur-sm text-gray-900"
+          >
+            <motion.div 
+              initial={isMobile ? { y: "100%" } : { scale: 0.9, opacity: 0 }}
+              animate={isMobile ? { y: 0 } : { scale: 1, opacity: 1 }}
+              exit={isMobile ? { y: "100%" } : { scale: 0.9, opacity: 0 }}
+              transition={isMobile ? { type: "spring", damping: 25, stiffness: 300 } : { duration: 0.2 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-t-[32px] md:rounded-lg w-full max-w-sm shadow-2xl border-t-4 border-red-500 max-h-[95vh] flex flex-col overflow-hidden"
+            >
+              <div className="shrink-0 px-6 pt-6 text-center">
+                <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-4 md:hidden" />
+                <div className="bg-red-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <AlertTriangle size={32} className="text-red-600" />
+                </div>
+                <h2 className="text-xl font-black text-red-600 mb-2">Excluir {(Object.values(boardData).flat() as any[]).find((l: any) => l.id === editingLeadId)?.nome || "este Lead"}?</h2>
+                <p className="text-sm text-gray-500 font-medium px-4">Esta ação é irreversível e apagará todo o histórico de vendas e contatos.</p>
+              </div>
+
+              <div className="overflow-y-auto flex-1 px-6 py-6 space-y-4">
+                <div className="bg-amber-50 p-4 rounded-xl border border-amber-200">
+                  <p className="text-xs text-amber-800 font-bold uppercase mb-1">Dica de Gestão</p>
+                  <p className="text-[11px] text-amber-700 leading-relaxed">Se o motivo for falta de interesse, recomendamos mover para a coluna <span className="font-bold">PERDIDO</span> para manter suas estatísticas de funil precisas.</p>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Para confirmar, digite <span className="text-red-600 italic">excluir</span> abaixo:</label>
+                  <input 
+                    type="text" 
+                    value={deleteConfirmationText} 
+                    onChange={(e) => setDeleteConfirmText(e.target.value)}
+                    placeholder="Digite excluir"
+                    className="w-full border-2 border-red-100 p-3 rounded-xl outline-none focus:border-red-500 text-center font-bold transition-all"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-2">
+                  <button 
+                    onClick={handleDeleteLead}
+                    disabled={deleteConfirmationText.toLowerCase() !== "excluir"}
+                    className="w-full bg-red-600 text-white p-4 rounded-xl font-bold shadow-lg shadow-red-200 active:scale-95 transition-all disabled:opacity-30 disabled:grayscale disabled:pointer-events-none"
+                  >
+                    Sim, excluir permanentemente
+                  </button>
+                  <button 
+                    onClick={() => { setIsDeleteConfirmModalOpen(false); setDeleteConfirmText(""); }}
+                    className="w-full bg-gray-50 text-gray-500 p-4 rounded-xl font-bold hover:bg-gray-100 transition-all"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
             </motion.div>
           </motion.div>
         )}
