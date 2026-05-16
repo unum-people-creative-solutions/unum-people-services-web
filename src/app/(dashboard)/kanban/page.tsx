@@ -110,7 +110,7 @@ const getInactivityStatus = (updatedAt: any, columnId: string) => {
 
 function KanbanContent() {
   const searchParams = useSearchParams();
-  const { session, logout } = useAuthStore();
+  const { session, logout, setSession } = useAuthStore();
   const router = useRouter();
 
   const [boardData, setBoardData] = useState<any>({});
@@ -289,19 +289,24 @@ function KanbanContent() {
 
   const loadAccountData = useCallback(async () => {
     try {
-      let data = session?.role === "GlobalAdmin" ? await TenantService.list() : await TenantService.listMyTenants();
+      // Usamos referências específicas da sessão para evitar loops ao atualizar o tenantName
+      const userRole = session?.role;
+      const sessionTenantId = session?.tenantId;
+
+      let data = userRole === "GlobalAdmin" ? await TenantService.list() : await TenantService.listMyTenants();
       const tenantsData = data || [];
       setTenants(tenantsData);
+
       if (!selectedTenantId && tenantsData.length > 0) {
         setSelectedTenantId(tenantsData[0].id);
-      } else if (!selectedTenantId && session?.tenantId) {
-        setSelectedTenantId(session.tenantId);
+      } else if (!selectedTenantId && sessionTenantId) {
+        setSelectedTenantId(sessionTenantId);
       }
     } catch (err) { 
       console.error(err);
       setTenants([]);
     }
-  }, [session, selectedTenantId]);
+  }, [session?.role, session?.tenantId, selectedTenantId]);
 
   const loadLeads = useCallback(async (statusListOrSilent: string[] | boolean = COLUMNS.map(c => c.id), silentParam = false) => {
     if (!selectedTenantId) return;
@@ -355,9 +360,20 @@ function KanbanContent() {
 
     if (tenants.length > 0) {
       const found = tenants.find(t => t.id === selectedTenantId);
-      if (found) setCurrentTenantName(found.nome_negocio);
+      if (found) {
+        setCurrentTenantName(found.nome_negocio);
+        
+        // Sincroniza o nome na sessão global se houver divergência
+        if (session && found.nome_negocio !== session.tenantName) {
+          setSession({
+            ...session,
+            tenantId: selectedTenantId,
+            tenantName: found.nome_negocio
+          });
+        }
+      }
     }
-  }, [selectedMonth, selectedYear, selectedTenantId, tenants, loadLeads]);
+  }, [selectedMonth, selectedYear, selectedTenantId, tenants, loadLeads, session, setSession]);
 
   const handleLogout = () => {
     logout();

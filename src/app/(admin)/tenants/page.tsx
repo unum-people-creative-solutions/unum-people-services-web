@@ -408,7 +408,7 @@ export default function TenantsPage() {
                       {tenantForm.formState.errors.nicho && <p className="text-red-500 text-xs mt-1">{tenantForm.formState.errors.nicho.message}</p>}
                     </div>
                     <Input 
-                      label="ID Google Ads"
+                      label="ID Google Ads (Opcional)"
                       icon={<Hash size={14}/>}
                       {...tenantForm.register("google_ads_customer_id")}
                       error={tenantForm.formState.errors.google_ads_customer_id?.message}

@@ -17,7 +17,7 @@ export const tenantSchema = z.object({
   nome_admin: z.string().min(2, "Nome do administrador deve ter pelo menos 2 caracteres"),
   email_contato: emailSchema,
   nicho: z.string(),
-  google_ads_customer_id: z.string().regex(/^\d{3}-\d{3}-\d{4}$/, "Formato inválido (000-000-0000)"),
+  google_ads_customer_id: z.string().regex(/^\d{3}-\d{3}-\d{4}$/, "Formato inválido (000-000-0000)").optional().or(z.literal("")),
   use_mcc_auth: z.boolean(),
 });
 

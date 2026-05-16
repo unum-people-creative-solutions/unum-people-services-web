@@ -69,6 +69,14 @@ export default function LoginPage() {
         console.log("[Login] Redirecionando para Onboarding (sem registros na base)");
         router.push("/onboarding");
       } else {
+        // Sincroniza o nome do inquilino primário na sessão
+        const primaryTenant = myTenants[0];
+        setSession({
+          ...sessionData,
+          tenantId: primaryTenant.id,
+          tenantName: primaryTenant.nome_negocio,
+        });
+
         if (isGlobalAdmin) {
           console.log("[Login] Redirecionando GlobalAdmin para /tenants");
           router.push("/tenants");
@@ -191,15 +199,21 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
       <div className="bg-white p-8 rounded-lg shadow-xl w-full max-w-md border-t-4 border-primary-600">
-        <div className="flex justify-center mb-10">
+        <div className="flex flex-col items-center mb-10 text-center">
           <Image 
-            src="/images/logo_texto.png" 
+            src="/images/logo_simbolo.png" 
             alt="Unum People" 
-            width={240} 
-            height={80} 
-            className="object-contain drop-shadow-sm"
+            width={60} 
+            height={60} 
+            className="object-contain mb-4"
             priority 
           />
+          <h1 className="text-3xl font-black text-primary-900 uppercase tracking-tighter">
+            Unum People <span className="text-primary-600 font-black">CRM</span>
+          </h1>
+          <p className="text-gray-500 text-xs font-bold uppercase tracking-widest mt-2 opacity-60">
+            Inteligência em Vendas
+          </p>
         </div>
         <form onSubmit={handleSubmit(handleLogin)} className="space-y-5">
           {error && <div className="p-3 bg-red-50 text-red-600 text-xs rounded-md text-center">{error}</div>}
@@ -210,19 +224,20 @@ export default function LoginPage() {
             {...register("email")}
             error={errors.email?.message}
           />
-          <div>
-            <div className="flex justify-between items-center mb-2">
-              <label className="text-gray-700 text-sm font-bold">Senha</label>
-              <Link href="/forgot-password" className="text-xs text-primary-600 hover:underline">Esqueci a senha</Link>
-            </div>
-            <input
+          <div className="relative">
+            <Link 
+              href="/forgot-password" 
+              className="absolute right-0 top-0 text-xs text-primary-600 hover:underline z-10"
+            >
+              Esqueci a senha
+            </Link>
+            <Input
+              label="Senha"
               type="password"
+              placeholder="Digite sua senha"
               {...register("password")}
-              className={`w-full p-3 border rounded-md focus:ring-2 focus:ring-primary-500 outline-none ${
-                errors.password ? "border-red-500" : ""
-              }`}
+              error={errors.password?.message}
             />
-            {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password.message}</p>}
           </div>
           <button
             type="submit"

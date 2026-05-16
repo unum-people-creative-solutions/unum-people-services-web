@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useId } from "react";
 import { useRouter } from "next/navigation";
 import { TenantService } from "@/services/api";
 import { useAuthStore } from "@/store/authStore";
@@ -16,6 +16,7 @@ type OnboardingFormValues = z.infer<typeof onboardingSchema>;
 export default function OnboardingPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const nichoId = useId();
   
   const { session, setSession } = useAuthStore();
   const router = useRouter();
@@ -65,6 +66,7 @@ export default function OnboardingPage() {
       setSession({
         ...session,
         tenantId: tenant.id,
+        tenantName: tenant.nome_negocio,
       });
 
       router.push("/kanban");
@@ -98,8 +100,9 @@ export default function OnboardingPage() {
           />
 
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Nicho / Área de Atuação</label>
+            <label htmlFor={nichoId} className="block text-sm font-semibold text-gray-700 mb-2">Nicho / Área de Atuação</label>
             <select
+              id={nichoId}
               {...register("nicho")}
               className={`w-full p-3 border rounded-md focus:ring-2 focus:ring-primary-500 outline-none transition-all bg-white ${
                 errors.nicho ? "border-red-500" : "border-gray-300"
