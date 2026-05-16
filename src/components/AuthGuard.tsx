@@ -27,7 +27,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    const publicPaths = ["/login", "/forgot-password", "/privacy", "/terms"];
+    const publicPaths = ["/", "/login", "/forgot-password", "/privacy", "/terms"];
     
     if (isHydrated) {
       // 1. Verificar se o caminho é público
