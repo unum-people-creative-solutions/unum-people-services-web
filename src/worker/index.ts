@@ -49,21 +49,32 @@ swSelf.addEventListener('push', (event) => {
 });
 
 swSelf.addEventListener('notificationclick', (event) => {
+  console.log('[SW] Notificação clicada.');
   event.notification.close();
 
   const urlToOpen = new URL(event.notification.data.url || '/', swSelf.location.origin).href;
 
   event.waitUntil(
     swSelf.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      // 1. Tenta encontrar uma janela que já esteja na URL ou pelo menos no mesmo domínio
+      // 1. Tenta encontrar uma janela que já esteja EXATAMENTE na URL alvo
       for (const client of clientList) {
-        if ('navigate' in client && client.url.startsWith(swSelf.location.origin)) {
+        if (client.url === urlToOpen && 'focus' in client) {
+          console.log('[SW] Janela encontrada na URL exata. Focando...');
+          return client.focus();
+        }
+      }
+
+      // 2. Tenta encontrar qualquer janela do domínio e navegar nela
+      for (const client of clientList) {
+        if (client.url.startsWith(swSelf.location.origin) && 'navigate' in client) {
+          console.log('[SW] Janela do domínio encontrada. Navegando para:', urlToOpen);
           return client.navigate(urlToOpen).then((c) => c?.focus());
         }
       }
 
-      // 2. Se não encontrar nenhuma janela do domínio aberta, abre uma nova
+      // 3. Se não houver nenhuma janela, abre uma nova
       if (swSelf.clients.openWindow) {
+        console.log('[SW] Nenhuma janela encontrada. Abrindo nova:', urlToOpen);
         return swSelf.clients.openWindow(urlToOpen);
       }
     })
