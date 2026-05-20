@@ -30,14 +30,20 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     const publicPaths = ["/", "/login", "/forgot-password", "/privacy", "/terms"];
     
     if (isHydrated) {
-      // 1. Verificar se o caminho é público
+      // 1. Redirecionar usuário logado se tentar acessar login
+      if (pathname === "/login" && isAuthenticated && session?.token) {
+        router.push("/kanban");
+        return;
+      }
+
+      // 2. Verificar se o caminho é público
       if (!publicPaths.includes(pathname)) {
         if (!isAuthenticated || !session?.token) {
           router.push("/login");
           return;
         }
 
-        // 2. Validação de expiração do Token
+        // 3. Validação de expiração do Token
         try {
           const decoded: any = jwtDecode(session.token);
           const currentTime = Date.now() / 1000;
@@ -54,7 +60,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
           return;
         }
 
-        // 3. Verificação de Consentimento LGPD (localStorage)
+        // 4. Verificação de Consentimento LGPD (localStorage)
         if (session?.email) {
           const accepted = localStorage.getItem(`terms-accepted-${session.email}`);
           if (!accepted) {
