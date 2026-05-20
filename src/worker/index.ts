@@ -35,7 +35,7 @@ swSelf.addEventListener('push', (event) => {
   const options: NotificationOptions = {
     body: data.body,
     icon: '/icons/icon-192x192.png',
-    badge: '/icons/icon-192x192.png',
+    badge: '/icons/badge-96x96.svg',
     data: {
       url: data.url || '/'
     }

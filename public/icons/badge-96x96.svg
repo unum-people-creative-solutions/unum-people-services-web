@@ -1,0 +1,5 @@
+<svg width="96" height="96" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Representação simplificada/estilizada do símbolo Unum para a barra de status -->
+  <path d="M256 48C141.1 48 48 141.1 48 256C48 370.9 141.1 464 256 464C370.9 464 464 370.9 464 256C464 141.1 370.9 48 256 48ZM256 416C167.8 416 96 344.2 96 256C96 167.8 167.8 96 256 96C344.2 96 416 167.8 416 256C416 344.2 344.2 416 256 416Z" fill="white"/>
+  <path d="M256 160C202.9 160 160 202.9 160 256C160 309.1 202.9 352 256 352C309.1 352 352 309.1 352 256C352 202.9 309.1 160 256 160Z" fill="white"/>
+</svg>
