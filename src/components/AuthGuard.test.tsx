@@ -100,6 +100,25 @@ describe('AuthGuard', () => {
     });
   });
 
+  it('deve redirecionar usuário autenticado de /login para /kanban', async () => {
+    (usePathname as any).mockReturnValue('/login');
+    (useAuthStore as any).mockReturnValue({
+      isAuthenticated: true,
+      session: { token: 'valid-token', email: 'test@example.com' },
+      logout: mockLogout,
+    });
+
+    render(
+      <AuthGuard>
+        <div>Content</div>
+      </AuthGuard>
+    );
+
+    await waitFor(() => {
+      expect(mockPush).toHaveBeenCalledWith('/kanban');
+    });
+  });
+
   it('deve redirecionar para /login se não autenticado em rota privada', async () => {
     (useAuthStore as any).mockReturnValue({
       isAuthenticated: false,

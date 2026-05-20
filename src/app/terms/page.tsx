@@ -1,14 +1,21 @@
-import Link from "next/link";
+"use client";
+
+import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 
 export default function TermsOfUsePage() {
+  const router = useRouter();
+
   return (
     <div className="min-h-screen bg-white text-gray-800 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-3xl mx-auto">
-        <Link href="/login" className="flex items-center text-primary-600 hover:text-primary-700 mb-8 transition-colors">
+        <button 
+          onClick={() => router.back()} 
+          className="flex items-center text-primary-600 hover:text-primary-700 mb-8 transition-colors"
+        >
           <ArrowLeft className="w-4 h-4 mr-2" />
-          Voltar para o Login
-        </Link>
+          Voltar
+        </button>
         
         <h1 className="text-3xl font-bold text-gray-900 mb-6">Termos de Uso</h1>
         <p className="text-sm text-gray-500 mb-8">Última atualização: 29 de Abril de 2026</p>
