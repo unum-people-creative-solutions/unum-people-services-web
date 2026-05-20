@@ -37,9 +37,9 @@
       "purpose": "maskable"
     },
     {
-      "src": "/icons/badge-96x96.svg",
+      "src": "/icons/badge-96x96.png",
       "sizes": "96x96",
-      "type": "image/svg+xml",
+      "type": "image/png",
       "purpose": "monochrome"
     }
   ],
