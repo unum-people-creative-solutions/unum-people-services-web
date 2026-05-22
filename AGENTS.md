@@ -4,8 +4,9 @@ Este repositório contém o frontend principal (Next.js) e o empacotamento TWA p
 
 ## 🚀 Workflow TLC (Obrigatório)
 Este projeto utiliza o framework **tlc-spec-driven**. Para qualquer nova implementação:
-1.  Consulte a especificação de baseline em `baseline_frontend_spec.md`.
-2.  Siga o workflow global definido em `../../.specs/codebase/CONVENTIONS.md`.
+1.  **Aprovação Prévia (TDD na Raiz)**: JAMAIS inicie a implementação de código sem antes gerar um Documento de Design Técnico (TDD) detalhado na raiz do projeto e obter aprovação explícita do usuário antes de iniciar a execução.
+2.  Consulte a especificação de baseline em `baseline_frontend_spec.md`.
+3.  Siga o workflow global definido em `../../.specs/codebase/rules.md`.
 
 ## 🛠️ Skills e Ferramentas
 -   **Skill Recomendada**: `tlc-spec-driven` para planejar e executar mudanças.

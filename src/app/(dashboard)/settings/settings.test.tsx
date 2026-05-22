@@ -96,13 +96,43 @@ describe('SettingsPage', () => {
     expect(global.URL.createObjectURL).toHaveBeenCalled();
   });
 
-  it('deve abrir o modal de exclusão de conta', async () => {
+  it('deve abrir o modal de exclusão, exigir a palavra "excluir" e confirmar', async () => {
     const user = userEvent.setup();
+    const alertMock = vi.spyOn(window, 'alert').mockImplementation(() => {});
     render(<SettingsPage />);
 
-    const deleteBtn = screen.getByRole('button', { name: /Solicitar Exclusão/i });
-    await user.click(deleteBtn);
+    const openModalBtn = screen.getByRole('button', { name: /Solicitar Exclusão/i });
+    await user.click(openModalBtn);
 
+    // Verifica se o modal abriu e mostra os avisos
     expect(screen.getByText('Confirmar Exclusão?')).toBeInTheDocument();
+    expect(screen.getByText('Atenção Crítica')).toBeInTheDocument();
+    expect(screen.getAllByText(/Você perderá acesso imediato ao sistema/i).length).toBeGreaterThanOrEqual(1);
+
+    const confirmBtn = screen.getByRole('button', { name: /Sim, excluir permanentemente/i });
+    const input = screen.getByPlaceholderText('Digite excluir');
+
+    // Botão deve estar desabilitado inicialmente
+    expect(confirmBtn).toBeDisabled();
+
+    // Digitar algo incorreto
+    await user.type(input, 'cancelar');
+    expect(confirmBtn).toBeDisabled();
+
+    // Digitar "excluir"
+    await user.clear(input);
+    await user.type(input, 'excluir');
+    expect(confirmBtn).not.toBeDisabled();
+
+    // Confirmar
+    await user.click(confirmBtn);
+    expect(alertMock).toHaveBeenCalledWith('Solicitação de exclusão enviada ao administrador.');
+    
+    // Modal deve fechar
+    await waitFor(() => {
+      expect(screen.queryByText('Confirmar Exclusão?')).not.toBeInTheDocument();
+    });
+
+    alertMock.mockRestore();
   });
 });

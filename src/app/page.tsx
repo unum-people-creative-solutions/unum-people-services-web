@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { CheckCircle, BarChart3, Users, Zap, ShieldCheck, FileText } from "lucide-react";
+import { CheckCircle, BarChart3, Users, Zap, ShieldCheck, FileText, Smartphone } from "lucide-react";
 
 export default function LandingPage() {
   const router = useRouter();
@@ -53,7 +53,7 @@ export default function LandingPage() {
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link 
-              href="/login" 
+              href="https://unumpeople.com.br" 
               className="w-full sm:w-auto bg-primary-600 text-white px-10 py-4 rounded-xl font-black text-lg hover:bg-primary-700 transition-all shadow-xl hover:shadow-primary-200"
             >
               Começar Agora
@@ -76,7 +76,7 @@ export default function LandingPage() {
             <p className="text-3xl font-black text-gray-900">Tudo o que você precisa para vender mais</p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
             <FeatureCard 
               icon={<BarChart3 className="text-primary-600" />}
               title="Atribuição Google Ads"
@@ -91,6 +91,11 @@ export default function LandingPage() {
               icon={<Zap className="text-primary-600" />}
               title="Ações Rápidas"
               description="Automatize contatos via WhatsApp e registre vendas com um clique, mantendo a agilidade do seu time."
+            />
+            <FeatureCard 
+              icon={<Smartphone className="text-primary-600" />}
+              title="App Android"
+              description="Receba notificações push instantâneas de novos leads e tenha a gestão do funil na palma da mão, onde você estiver."
             />
           </div>
         </div>
@@ -115,7 +120,7 @@ export default function LandingPage() {
           <div className="grid md:grid-cols-2 gap-12 items-center border-b border-primary-800 pb-12 mb-12">
             <div>
               <div className="flex items-center gap-2 mb-6">
-                <Image src="/images/logo_simbolo.png" alt="Unum People Logo" width={40} height={40} className="brightness-0 invert" />
+                <Image src="/images/logo_simbolo.png" alt="Unum People Logo" width={40} height={40} className="" />
                 <span className="text-2xl font-black tracking-tighter uppercase">Unum People <span className="text-primary-400">CRM</span></span>
               </div>
               <p className="text-primary-200 font-medium max-w-sm">

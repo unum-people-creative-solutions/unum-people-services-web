@@ -7,6 +7,26 @@ export const phoneSchema = z.string().refine((val) => {
   return nums.length >= 10 && nums.length <= 11;
 }, "Telefone deve ter 10 ou 11 dígitos");
 
+export const cpfSchema = z.string().refine((val) => {
+  const cpf = val.replace(/\D/g, "");
+  if (cpf.length !== 11) return false;
+  if (/^(\d)\1{10}$/.test(cpf)) return false;
+
+  let sum = 0;
+  for (let i = 0; i < 9; i++) sum += parseInt(cpf.charAt(i)) * (10 - i);
+  let rev = 11 - (sum % 11);
+  if (rev === 10 || rev === 11) rev = 0;
+  if (rev !== parseInt(cpf.charAt(9))) return false;
+
+  sum = 0;
+  for (let i = 0; i < 10; i++) sum += parseInt(cpf.charAt(i)) * (11 - i);
+  rev = 11 - (sum % 11);
+  if (rev === 10 || rev === 11) rev = 0;
+  if (rev !== parseInt(cpf.charAt(10))) return false;
+
+  return true;
+}, "CPF inválido");
+
 export const loginSchema = z.object({
   email: emailSchema,
   password: z.string().min(1, "Senha é obrigatória"),
@@ -25,6 +45,8 @@ export const leadSchema = z.object({
   nome: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
   email: emailSchema.optional().or(z.literal("")),
   telefone: phoneSchema,
+  cpf: cpfSchema.optional().or(z.literal("")),
+  data_nascimento: z.string().optional().or(z.literal("")),
   origem: z.string(),
   anotacoes: z.string().optional(),
 });

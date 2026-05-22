@@ -1,7 +1,7 @@
 # Baseline Frontend Specification - unum-people-services-web
 
 **Data:** 2026-05-19
-**Versão:** 1.0.0
+**Versão:** 1.1.0
 **Status:** Baseline (Current State)
 
 Este documento descreve o estado atual do frontend da Unum People, servindo como base para o workflow `tlc-spec-driven`.
@@ -70,6 +70,14 @@ O `unum-people-services-web` é um Painel Administrativo e CRM multi-tenant cons
 ### 4.5. Notificações Push
 - Registro de dispositivo via Web Push API.
 - Gerenciamento de permissões e envio de tokens para o backend.
+
+### 4.6. Configurações & LGPD (Settings)
+- **Informações do Negócio:** Edição de dados do Tenant.
+- **Integração Ads:** Status da conexão e botão para reconectar.
+- **Preferências de Notificação:** Toggle para ativar/desativar Push no dispositivo atual.
+- **Conformidade LGPD:**
+    - **Exportação de Dados:** Download de arquivo JSON com todos os dados vinculados ao usuário/tenant.
+    - **Exclusão de Conta:** Fluxo com modal de confirmação em duas etapas para solicitação de remoção definitiva de dados.
 
 ---
 

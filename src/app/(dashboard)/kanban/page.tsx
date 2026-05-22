@@ -17,6 +17,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { leadSchema } from "@/lib/validations";
 import { Input } from "@/components/ui/Input";
 import { PhoneInput } from "@/components/ui/PhoneInput";
+import { CPFInput } from "@/components/ui/CPFInput";
 import { z } from "zod";
 
 type LeadFormValues = z.infer<typeof leadSchema>;
@@ -198,6 +199,8 @@ function KanbanContent() {
             "Nome do Cliente": lead.nome,
             "E-mail": lead.email,
             "Telefone": lead.telefone || "N/A",
+            "CPF": lead.cpf || "N/A",
+            "Data Nasc.": lead.data_nascimento ? new Date(lead.data_nascimento).toLocaleDateString('pt-BR') : "N/A",
             "Origem": lead.origem,
             "Qtd. Vendas": periodSales.length,
             "Total de Vendas (R$)": totalLeadSales
@@ -216,6 +219,8 @@ function KanbanContent() {
         "Nome do Cliente": "TOTAL GERAL",
         "E-mail": "",
         "Telefone": "",
+        "CPF": "",
+        "Data Nasc.": "",
         "Origem": "",
         "Qtd. Vendas": "",
         "Total de Vendas (R$)": grandTotal
@@ -233,6 +238,8 @@ function KanbanContent() {
           detailedData.push({
             "Nome do Cliente": lead.nome,
             "E-mail": lead.email,
+            "CPF": lead.cpf || "N/A",
+            "Data Nasc.": lead.data_nascimento ? new Date(lead.data_nascimento).toLocaleDateString('pt-BR') : "N/A",
             "Valor da Venda (R$)": sale.valor,
             "Data da Venda": new Date(sale.data).toLocaleDateString('pt-BR')
           });
@@ -244,13 +251,13 @@ function KanbanContent() {
 
       // Aba 1: Resumo
       const wsSummary = XLSX.utils.json_to_sheet(summaryData);
-      const summaryCols = [{ wch: 35 }, { wch: 35 }, { wch: 20 }, { wch: 15 }, { wch: 15 }, { wch: 25 }];
+      const summaryCols = [{ wch: 35 }, { wch: 35 }, { wch: 20 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 25 }];
       wsSummary['!cols'] = summaryCols;
       XLSX.utils.book_append_sheet(wb, wsSummary, "Resumo");
 
       // Aba 2: Vendas Detalhadas
       const wsDetailed = XLSX.utils.json_to_sheet(detailedData);
-      const detailedCols = [{ wch: 35 }, { wch: 35 }, { wch: 20 }, { wch: 20 }];
+      const detailedCols = [{ wch: 35 }, { wch: 35 }, { wch: 15 }, { wch: 15 }, { wch: 20 }, { wch: 20 }];
       wsDetailed['!cols'] = detailedCols;
       XLSX.utils.book_append_sheet(wb, wsDetailed, "Vendas Detalhadas");
 
@@ -399,6 +406,8 @@ function KanbanContent() {
       nome: lead.nome,
       email: lead.email || "",
       telefone: lead.telefone,
+      cpf: lead.cpf || "",
+      data_nascimento: lead.data_nascimento || "",
       origem: lead.origem,
       anotacoes: lead.anotacoes || ""
     });
@@ -833,6 +842,26 @@ function KanbanContent() {
                     error={createLeadForm.formState.errors.email?.message}
                     placeholder="email@exemplo.com"
                   />
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Controller
+                      control={createLeadForm.control}
+                      name="cpf"
+                      render={({ field }) => (
+                        <CPFInput
+                          label="CPF"
+                          {...field}
+                          error={createLeadForm.formState.errors.cpf?.message}
+                          placeholder="000.000.000-00"
+                        />
+                      )}
+                    />
+                    <Input 
+                      label="Data de Nascimento" 
+                      type="date"
+                      {...createLeadForm.register("data_nascimento")}
+                      error={createLeadForm.formState.errors.data_nascimento?.message}
+                    />
+                  </div>
                   <Controller
                     control={createLeadForm.control}
                     name="telefone"
@@ -1016,6 +1045,26 @@ function KanbanContent() {
                       {...editLeadForm.register("email")}
                       error={editLeadForm.formState.errors.email?.message}
                     />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <Controller
+                        control={editLeadForm.control}
+                        name="cpf"
+                        render={({ field }) => (
+                          <CPFInput
+                            label="CPF"
+                            {...field}
+                            error={editLeadForm.formState.errors.cpf?.message}
+                            placeholder="000.000.000-00"
+                          />
+                        )}
+                      />
+                      <Input 
+                        label="Data de Nascimento" 
+                        type="date"
+                        {...editLeadForm.register("data_nascimento")}
+                        error={editLeadForm.formState.errors.data_nascimento?.message}
+                      />
+                    </div>
                     <Controller
                       control={editLeadForm.control}
                       name="telefone"

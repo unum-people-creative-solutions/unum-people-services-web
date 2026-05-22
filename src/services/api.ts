@@ -31,6 +31,8 @@ export interface LeadData {
   nome: string;
   email?: string;
   telefone: string;
+  cpf?: string;
+  data_nascimento?: string;
   origem: string;
   anotacoes?: string;
 }
@@ -61,7 +63,7 @@ export const LeadService = {
     const response = await api.put(url, { status, valor_venda: valor, data_venda: dataVenda });
     return response.data;
   },
-  update: async (id: string, data: { nome: string; email?: string; telefone: string; origem?: string; sales?: any[]; status?: string; anotacoes?: string }, tenantId?: string) => {
+  update: async (id: string, data: { nome: string; email?: string; telefone: string; cpf?: string; data_nascimento?: string; origem?: string; sales?: any[]; status?: string; anotacoes?: string }, tenantId?: string) => {
     let url = `/leads/${id}`;
     if (tenantId) {
       url += `?tenant_id=${tenantId}`;
@@ -116,6 +118,10 @@ export const TenantService = {
     // Usando a construção manual da URL para garantir compatibilidade total com o esperado pelo backend
     const url = `/auth/google-ads/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}&redirect_uri=${encodeURIComponent(redirectUri)}`;
     const response = await api.post(url);
+    return response.data;
+  },
+  deleteAccount: async () => {
+    const response = await api.delete('/me/account');
     return response.data;
   }
 };
