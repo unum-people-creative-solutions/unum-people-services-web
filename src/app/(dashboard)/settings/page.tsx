@@ -308,9 +308,11 @@ export default function SettingsPage() {
                       setIsDeleting(true);
                       try {
                         const res = await TenantService.deleteAccount();
-                        alert(res.message || "Solicitação de exclusão enviada ao administrador.");
-                        setShowDeleteModal(false);
-                        setDeleteConfirmationText("");
+                        alert(res.message || "Sua conta foi desativada e a solicitação de exclusão foi registrada.");
+                        
+                        // Limpa a sessão local e redireciona
+                        useAuthStore.getState().logout();
+                        window.location.href = "/login";
                       } catch (error) {
                         console.error("Erro ao solicitar exclusão:", error);
                         alert("Ocorreu um erro ao processar sua solicitação. Tente novamente mais tarde.");
