@@ -119,6 +119,10 @@ export const TenantService = {
     const url = `/auth/google-ads/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}&redirect_uri=${encodeURIComponent(redirectUri)}`;
     const response = await api.post(url);
     return response.data;
+  },
+  deleteAccount: async () => {
+    const response = await api.delete('/me/account');
+    return response.data;
   }
 };
 

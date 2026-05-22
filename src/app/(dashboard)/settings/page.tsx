@@ -3,17 +3,20 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useAuthStore } from "@/store/authStore";
-import { User, Mail, Shield, Building, Trash2, Save, X, FileText, ExternalLink, Bell, BellOff } from "lucide-react";
+import { User, Mail, Shield, Building, Trash2, Save, X, FileText, ExternalLink, Bell, BellOff, AlertTriangle } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
+import { TenantService } from "@/services/api";
 
 export default function SettingsPage() {
   const { session } = useAuthStore();
   const { isSubscribed, subscribeUser, unsubscribeUser, loading: pushLoading, permission } = usePushNotifications();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteConfirmationText, setDeleteConfirmationText] = useState("");
   const [isMobile, setIsMobile] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -246,8 +249,8 @@ export default function SettingsPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={() => setShowDeleteModal(false)}
-            className="fixed inset-0 z-[100] flex items-end md:items-center justify-center md:p-4 bg-black/50 backdrop-blur-sm"
+            onClick={() => { setShowDeleteModal(false); setDeleteConfirmationText(""); }}
+            className="fixed inset-0 z-[100] flex items-end md:items-center justify-center md:p-4 bg-black/60 backdrop-blur-sm"
           >
             <motion.div 
               initial={isMobile ? { y: "100%" } : { scale: 0.9, opacity: 0 }}
@@ -260,37 +263,70 @@ export default function SettingsPage() {
               onDragEnd={(_, info) => {
                 if (isMobile && info.offset.y > 150) {
                   setShowDeleteModal(false);
+                  setDeleteConfirmationText("");
                 }
               }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-t-[32px] md:rounded-xl max-w-md w-full shadow-2xl max-h-[95vh] flex flex-col overflow-hidden"
+              className="bg-white rounded-t-[32px] md:rounded-xl max-w-md w-full shadow-2xl border-t-4 border-red-500 max-h-[95vh] flex flex-col overflow-hidden"
             >
-              <div className="shrink-0 px-6 pt-6">
+              <div className="shrink-0 px-6 pt-6 text-center">
                 <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-4 md:hidden" />
-                <div className="flex items-center gap-3 text-red-600 mb-4">
-                  <div className="bg-red-100 p-2 rounded-full">
-                    <Trash2 className="w-6 h-6" />
-                  </div>
-                  <h3 className="text-xl font-bold">Confirmar Exclusão?</h3>
+                <div className="bg-red-50 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <AlertTriangle size={32} className="text-red-600" />
                 </div>
+                <h3 className="text-xl font-black text-red-600 mb-2">Confirmar Exclusão?</h3>
+                <p className="text-sm text-gray-500 font-medium px-4">Esta ação é irreversível. Seus dados de acesso serão removidos e você perderá o vínculo com seu tenant.</p>
               </div>
 
-              <div className="overflow-y-auto flex-1 px-6 pb-6 custom-scrollbar">
-                <p className="text-gray-600 mb-6 leading-relaxed">
-                  Esta ação é irreversível. Seus dados de acesso serão removidos e você perderá o vínculo com seu tenant. Se você for o único administrador, os dados do tenant também poderão ser afetados.
-                </p>
-                <div className="flex gap-3">
+              <div className="overflow-y-auto flex-1 px-6 py-6 space-y-4">
+                <div className="bg-red-50 p-4 rounded-xl border border-red-100">
+                  <p className="text-xs text-red-800 font-bold uppercase mb-1">Atenção Crítica</p>
+                  <ul className="text-[11px] text-red-700 leading-relaxed list-disc list-inside space-y-1 font-medium">
+                    <li>Você perderá acesso imediato ao sistema.</li>
+                    <li>Todo seu histórico de atividades será anonimizado/removido.</li>
+                    <li>Se for o único admin, o tenant será desativado.</li>
+                    <li>Esta ação não pode ser desfeita.</li>
+                  </ul>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Para confirmar, digite <span className="text-red-600 italic">excluir</span> abaixo:</label>
+                  <input 
+                    type="text" 
+                    value={deleteConfirmationText} 
+                    onChange={(e) => setDeleteConfirmationText(e.target.value)}
+                    placeholder="Digite excluir"
+                    className="w-full border-2 border-red-100 p-3 rounded-xl outline-none focus:border-red-500 text-center font-bold transition-all text-gray-900"
+                  />
+                </div>
+
+                <div className="flex flex-col gap-2">
                   <button 
-                    onClick={() => setShowDeleteModal(false)}
-                    className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-bold hover:bg-gray-200 transition-colors"
+                    className="w-full bg-red-600 text-white p-4 rounded-xl font-bold shadow-lg shadow-red-200 active:scale-95 transition-all disabled:opacity-30 disabled:grayscale disabled:pointer-events-none flex items-center justify-center gap-2"
+                    disabled={deleteConfirmationText.toLowerCase() !== "excluir" || isDeleting}
+                    onClick={async () => {
+                      setIsDeleting(true);
+                      try {
+                        const res = await TenantService.deleteAccount();
+                        alert(res.message || "Solicitação de exclusão enviada ao administrador.");
+                        setShowDeleteModal(false);
+                        setDeleteConfirmationText("");
+                      } catch (error) {
+                        console.error("Erro ao solicitar exclusão:", error);
+                        alert("Ocorreu um erro ao processar sua solicitação. Tente novamente mais tarde.");
+                      } finally {
+                        setIsDeleting(false);
+                      }
+                    }}
                   >
-                    Cancelar
+                    {isDeleting ? "Processando..." : "Sim, excluir permanentemente"}
                   </button>
                   <button 
-                    className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 transition-all shadow-md"
-                    onClick={() => alert("Solicitação de exclusão enviada ao administrador.")}
+                    onClick={() => { setShowDeleteModal(false); setDeleteConfirmationText(""); }}
+                    disabled={isDeleting}
+                    className="w-full bg-gray-50 text-gray-500 p-4 rounded-xl font-bold hover:bg-gray-100 transition-all disabled:opacity-50"
                   >
-                    Sim, Excluir
+                    Cancelar
                   </button>
                 </div>
               </div>
