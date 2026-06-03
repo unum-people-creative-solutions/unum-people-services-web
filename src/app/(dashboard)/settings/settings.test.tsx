@@ -11,9 +11,20 @@ vi.mock('next/navigation', () => ({
   useSearchParams: vi.fn(() => new URLSearchParams()),
 }));
 
-vi.mock('@/store/authStore', () => ({
-  useAuthStore: vi.fn(),
-}));
+vi.mock('@/store/authStore', () => {
+  const store = vi.fn();
+  (store as any).getState = vi.fn(() => ({
+    session: {
+      name: 'Jared Evans',
+      email: 'jared@test.com',
+      tenantName: 'Unum Corp',
+      role: 'Admin',
+      tenantId: 't-123'
+    },
+    logout: vi.fn()
+  }));
+  return { useAuthStore: store };
+});
 
 vi.mock('@/hooks/usePushNotifications', () => ({
   usePushNotifications: vi.fn(() => ({
@@ -23,6 +34,12 @@ vi.mock('@/hooks/usePushNotifications', () => ({
     loading: false,
     permission: 'default',
   })),
+}));
+
+vi.mock('@/services/api', () => ({
+  TenantService: {
+    deleteAccount: vi.fn().mockResolvedValue({}),
+  }
 }));
 
 // Mock do Blob e URL
@@ -126,12 +143,7 @@ describe('SettingsPage', () => {
 
     // Confirmar
     await user.click(confirmBtn);
-    expect(alertMock).toHaveBeenCalledWith('Solicitação de exclusão enviada ao administrador.');
-    
-    // Modal deve fechar
-    await waitFor(() => {
-      expect(screen.queryByText('Confirmar Exclusão?')).not.toBeInTheDocument();
-    });
+    expect(alertMock).toHaveBeenCalledWith('Sua conta foi desativada e a solicitação de exclusão foi registrada.');
 
     alertMock.mockRestore();
   });

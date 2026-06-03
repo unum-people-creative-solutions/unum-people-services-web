@@ -1,10 +1,17 @@
 import type { Metadata, Viewport } from "next";
+import { Poppins } from "next/font/google";
 import "@/app/globals.css";
 import AuthGuard from "@/components/AuthGuard";
 import CookieBanner from "@/components/CookieBanner";
 
+const poppins = Poppins({
+  subsets: ["latin"],
+  weight: ["300", "400", "600", "700", "900"],
+  variable: "--font-poppins",
+});
+
 export const viewport: Viewport = {
-  themeColor: "#3D5D97",
+  themeColor: "#0A1C82", // Updated to brand-blue
   width: "device-width",
   initialScale: 1,
 };
@@ -37,7 +44,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR">
-      <body className="antialiased bg-gray-50 text-gray-900">
+      <body className={`antialiased font-sans bg-white text-gray-900 ${poppins.variable}`}>
         <AuthGuard>
           {children}
         </AuthGuard>

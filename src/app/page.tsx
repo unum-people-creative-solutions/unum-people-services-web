@@ -23,15 +23,15 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-white text-gray-900 font-sans">
       {/* Navigation */}
-      <nav className="border-b border-gray-100 sticky top-0 bg-white/80 backdrop-blur-md z-50">
+      <nav className="border-b border-support-grey/10 sticky top-0 bg-white/80 backdrop-blur-md z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Image src="/images/logo_simbolo.png" alt="Unum People Logo" width={32} height={32} />
-            <span className="text-xl font-black text-primary-900 tracking-tighter uppercase">Unum People <span className="text-primary-600">CRM</span></span>
+            <Image src="/images/logo_simbolo.webp" alt="Unum People Símbolo" width={40} height={40} className="h-8 w-auto" />
+            <Image src="/images/logo_texto.webp" alt="Unum People" width={160} height={32} className="h-8 w-auto" />
           </div>
           <Link 
             href="/login" 
-            className="bg-primary-600 text-white px-6 py-2.5 rounded-full font-bold text-sm hover:bg-primary-700 transition-all shadow-lg hover:shadow-primary-200"
+            className="bg-brand-orange text-white px-6 py-2.5 rounded-full font-bold text-sm hover:brightness-110 transition-all shadow-md"
           >
             Acessar Painel
           </Link>
@@ -39,106 +39,143 @@ export default function LandingPage() {
       </nav>
 
       {/* Hero Section */}
-      <header className="py-20 lg:py-32 px-4 relative overflow-hidden">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full -z-10 opacity-5">
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[1000px] bg-primary-600 rounded-full blur-[120px]" />
+      <header className="py-24 lg:py-40 px-4 relative overflow-hidden bg-white">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full -z-10 opacity-[0.03]">
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1200px] h-[1200px] bg-gradient-to-br from-brand-blue via-brand-purple to-brand-orange rounded-full blur-[120px]" />
         </div>
         
-        <div className="max-w-4xl mx-auto text-center">
-          <h1 className="text-4xl md:text-6xl font-black text-gray-900 leading-[1.1] mb-6">
-            Gestão inteligente de <span className="text-primary-600 underline decoration-8 decoration-primary-100 underline-offset-8">leads e vendas</span>
+        <div className="max-w-5xl mx-auto text-center">
+          <h1 className="text-5xl md:text-7xl font-black text-brand-blue leading-[1.05] mb-8 tracking-tight">
+            A tecnologia que conecta e <br className="hidden md:block" />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-blue to-brand-orange">aproxima pessoas.</span>
           </h1>
-          <p className="text-lg md:text-xl text-gray-500 font-medium leading-relaxed mb-10 max-w-2xl mx-auto">
-            O Unum People CRM é a plataforma definitiva para otimizar seu funil comercial, integrando dados do Google Ads para uma atribuição precisa e resultados reais.
+          <p className="text-xl md:text-2xl text-support-grey font-medium leading-relaxed mb-12 max-w-3xl mx-auto">
+            A tecnologia é a ponte invisível; a relação direta e o resultado prático são o foco. <br className="hidden md:block" />
+            O Unum People CRM é o caminho mais curto entre você e o seu cliente.
           </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+          <div className="flex flex-col sm:row items-center justify-center gap-5">
             <Link 
-              href="https://unumpeople.com.br" 
-              className="w-full sm:w-auto bg-primary-600 text-white px-10 py-4 rounded-xl font-black text-lg hover:bg-primary-700 transition-all shadow-xl hover:shadow-primary-200"
+              href="https://unumpeople.com.br/servicos" 
+              className="w-full sm:w-auto bg-brand-orange text-white px-12 py-5 rounded-2xl font-black text-xl hover:brightness-110 transition-all shadow-xl hover:scale-[1.02] active:scale-[0.98]"
             >
               Começar Agora
             </Link>
             <a 
               href="#features" 
-              className="w-full sm:w-auto bg-gray-50 text-gray-600 px-10 py-4 rounded-xl font-bold text-lg hover:bg-gray-100 transition-all"
+              className="w-full sm:w-auto text-support-grey font-bold text-lg hover:text-brand-blue transition-colors flex items-center gap-2"
             >
-              Ver Funcionalidades
+              Ver Funcionalidades <Zap size={20} />
             </a>
           </div>
         </div>
       </header>
 
-      {/* Features Grid */}
-      <section id="features" className="py-24 bg-gray-50/50">
+      {/* Principles Section */}
+      <section className="py-24 bg-gray-50/30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-sm font-black text-primary-600 uppercase tracking-widest mb-2">Funcionalidades Profissionais</h2>
-            <p className="text-3xl font-black text-gray-900">Tudo o que você precisa para vender mais</p>
+            <h2 className="text-sm font-black text-brand-purple uppercase tracking-[0.3em] mb-3">Princípios Norteadores</h2>
+            <p className="text-3xl md:text-4xl font-black text-brand-blue tracking-tight">O que nos move adiante</p>
+          </div>
+          <div className="grid md:grid-cols-3 lg:grid-cols-5 gap-6">
+            <ValueCard 
+              title="Unidade" 
+              description="Atuar em convergência, eliminando divisões entre o empreendedor e seu cliente." 
+            />
+            <ValueCard 
+              title="Conexão" 
+              description="Estabelecer pontes legítimas ligando propósitos e necessidades de forma direta." 
+            />
+            <ValueCard 
+              title="Relacionamento" 
+              description="Priorizar as pessoas antes das transações. Negócios são sustentados pela confiança." 
+            />
+            <ValueCard 
+              title="Jornada" 
+              description="Caminhar lado a lado, respeitando o tempo e apoiando o crescimento contínuo." 
+            />
+            <ValueCard 
+              title="Transformação" 
+              description="Gerar frutos reais e impacto positivo, permitindo que os negócios prosperem." 
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* Features Grid */}
+      <section id="features" className="py-32 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-20">
+            <h2 className="text-sm font-black text-brand-orange uppercase tracking-[0.3em] mb-3">Ecossistema Unum People</h2>
+            <p className="text-3xl md:text-5xl font-black text-brand-blue tracking-tight">Inteligência & Produtividade</p>
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
             <FeatureCard 
-              icon={<BarChart3 className="text-primary-600" />}
+              icon={<BarChart3 className="text-brand-orange" />}
               title="Atribuição Google Ads"
-              description="Rastreie a origem dos seus leads e entenda quais campanhas estão gerando vendas reais com integração via OAuth."
+              description="Rastreie a origem dos seus leads e entenda quais campanhas estão gerando vendas reais."
             />
             <FeatureCard 
-              icon={<Users className="text-primary-600" />}
+              icon={<Users className="text-brand-purple" />}
               title="Kanban de Vendas"
-              description="Visualize seu fluxo comercial de forma intuitiva, movendo leads entre etapas com facilidade e foco total."
+              description="Visualize seu fluxo comercial de forma intuitiva, movendo leads entre etapas com facilidade."
             />
             <FeatureCard 
-              icon={<Zap className="text-primary-600" />}
+              icon={<Zap className="text-brand-blue" />}
               title="Ações Rápidas"
-              description="Automatize contatos via WhatsApp e registre vendas com um clique, mantendo a agilidade do seu time."
+              description="Automatize contatos via WhatsApp e registre vendas com agilidade total."
             />
             <FeatureCard 
-              icon={<Smartphone className="text-primary-600" />}
+              icon={<Smartphone className="text-brand-orange" />}
               title="App Android"
-              description="Receba notificações push instantâneas de novos leads e tenha a gestão do funil na palma da mão, onde você estiver."
+              description="Receba notificações push instantâneas e tenha a gestão do funil na palma da mão."
             />
           </div>
         </div>
       </section>
 
       {/* Trust Section */}
-      <section className="py-24 border-t border-gray-100">
-        <div className="max-w-5xl mx-auto px-4 text-center">
-          <h2 className="text-2xl font-black text-gray-900 mb-12">Por que escolher o Unum People CRM?</h2>
-          <div className="grid sm:grid-cols-2 gap-x-12 gap-y-8 text-left">
-            <CheckItem text="Conformidade total com a LGPD e privacidade de dados." />
-            <CheckItem text="Interface mobile-first para gestão de qualquer lugar." />
+      <section className="py-24 bg-brand-blue text-white overflow-hidden relative">
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-0 right-0 w-96 h-96 bg-brand-orange rounded-full blur-[100px] -mr-48 -mt-48" />
+        </div>
+        <div className="max-w-5xl mx-auto px-4 text-center relative z-10">
+          <h2 className="text-3xl md:text-4xl font-black mb-16 tracking-tight">Exclusivo Unum People CRM</h2>
+          <div className="grid sm:grid-cols-2 gap-x-16 gap-y-10 text-left">
+            <CheckItem text="Conformidade total com a LGPD e privacidade." />
+            <CheckItem text="Interface mobile-first vanguardista." />
             <CheckItem text="Dashboards em tempo real com métricas de LTV." />
-            <CheckItem text="Suporte dedicado à integração de anúncios pagos." />
+            <CheckItem text="Suporte dedicado ao marketing de performance." />
           </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="bg-primary-900 text-white py-16">
+      <footer className="bg-white text-brand-blue py-20 border-t border-support-grey/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-2 gap-12 items-center border-b border-primary-800 pb-12 mb-12">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-12 border-b border-support-grey/10 pb-16 mb-12">
             <div>
-              <div className="flex items-center gap-2 mb-6">
-                <Image src="/images/logo_simbolo.png" alt="Unum People Logo" width={40} height={40} className="" />
-                <span className="text-2xl font-black tracking-tighter uppercase">Unum People <span className="text-primary-400">CRM</span></span>
+              <div className="flex items-center gap-2 mb-8">
+                <Image src="/images/logo_texto.webp" alt="Unum People" width={240} height={48} className="h-12 w-auto" />
               </div>
-              <p className="text-primary-200 font-medium max-w-sm">
-                Transformando dados em lucro através de inteligência comercial e atribuição de marketing de alta precisão.
+              <p className="text-support-grey font-medium max-w-sm">
+                O caminho mais curto entre você e o seu cliente. <br />
+                Tecnologia para conexões reais.
               </p>
             </div>
-            <div className="flex flex-wrap gap-8 md:justify-end">
-              <Link href="/login" className="font-bold hover:text-primary-400 transition-colors">Login</Link>
-              <Link href="/terms" className="font-bold hover:text-primary-400 transition-colors flex items-center gap-2">
-                <FileText size={18} /> Termos de Uso
+            <div className="flex flex-wrap gap-10 md:justify-end text-sm">
+              <Link href="/login" className="font-bold hover:text-brand-orange transition-colors">Login</Link>
+              <Link href="/terms" className="font-bold hover:text-brand-orange transition-colors flex items-center gap-2">
+                Termos de Uso
               </Link>
-              <Link href="/privacy" className="font-bold hover:text-primary-400 transition-colors flex items-center gap-2">
-                <ShieldCheck size={18} /> Privacidade
+              <Link href="/privacy" className="font-bold hover:text-brand-orange transition-colors flex items-center gap-2">
+                Privacidade
               </Link>
             </div>
           </div>
-          <div className="text-center text-primary-400 text-xs font-bold uppercase tracking-widest">
-            © {new Date().getFullYear()} Unum People CRM. Todos os direitos reservados.
+          <div className="text-center text-support-grey/50 text-[10px] font-black uppercase tracking-[0.4em]">
+            © {new Date().getFullYear()} Unum People - Creative Solutions. Todos os direitos reservados.
           </div>
         </div>
       </footer>
@@ -146,23 +183,35 @@ export default function LandingPage() {
   );
 }
 
+function ValueCard({ title, description }: { title: string, description: string }) {
+  return (
+    <div className="bg-white p-8 rounded-2xl border border-support-grey/10 shadow-[0_4px_20px_rgba(0,0,0,0.03)] hover:shadow-xl hover:-translate-y-1 transition-all">
+      <h3 className="text-lg font-black text-transparent bg-clip-text bg-gradient-to-br from-brand-blue to-brand-orange mb-4">{title}</h3>
+      <p className="text-support-grey text-sm font-medium leading-relaxed">{description}</p>
+    </div>
+  );
+}
+
 function FeatureCard({ icon, title, description }: { icon: React.ReactNode, title: string, description: string }) {
   return (
-    <div className="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all">
-      <div className="bg-primary-50 w-12 h-12 rounded-xl flex items-center justify-center mb-6">
+    <div className="group bg-white p-10 rounded-2xl border border-support-grey/10 shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all duration-500">
+      <div className="bg-gray-50 border border-support-grey/5 w-16 h-16 rounded-xl flex items-center justify-center mb-8 group-hover:scale-110 transition-transform duration-500">
         {icon}
       </div>
-      <h3 className="text-xl font-black text-gray-900 mb-3">{title}</h3>
-      <p className="text-gray-500 font-medium leading-relaxed">{description}</p>
+      <h3 className="text-2xl font-black text-brand-blue mb-4 tracking-tight">{title}</h3>
+      <p className="text-support-grey font-medium leading-relaxed">{description}</p>
     </div>
   );
 }
 
 function CheckItem({ text }: { text: string }) {
   return (
-    <div className="flex items-start gap-3">
-      <CheckCircle className="text-green-500 shrink-0 mt-1" size={20} />
-      <span className="text-gray-600 font-bold">{text}</span>
+    <div className="flex items-center gap-4">
+      <div className="bg-white/10 p-1 rounded-full">
+        <CheckCircle className="text-brand-orange shrink-0" size={24} />
+      </div>
+      <span className="text-white font-bold text-lg">{text}</span>
     </div>
   );
 }
+

@@ -66,7 +66,7 @@ export default function SettingsPage() {
       <main className="p-4 md:p-8 max-w-4xl mx-auto w-full">
         <header className="mb-8">
           <h1 className="text-2xl font-black uppercase tracking-tight flex items-center gap-3">
-            <Shield className="text-primary-600" size={28} /> Configurações e LGPD
+            <Shield className="text-brand-blue" size={28} /> Configurações e LGPD
           </h1>
           <p className="text-gray-500 text-sm font-medium">Gerencie suas informações pessoais, preferências e documentos legais.</p>
         </header>
@@ -147,7 +147,7 @@ export default function SettingsPage() {
                     {session?.tenantName || "Não Identificado"}
                   </p>
                 </div>
-                <Building size={32} className="text-primary-200" />
+                <Building size={32} className="text-support-grey/50" />
               </div>
 
               <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-100">
@@ -173,7 +173,7 @@ export default function SettingsPage() {
               >
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-white rounded-lg shadow-sm group-hover:bg-primary-100 transition-colors">
-                    <FileText size={20} className="text-gray-500 group-hover:text-primary-600" />
+                    <FileText size={20} className="text-gray-500 group-hover:text-brand-blue" />
                   </div>
                   <div>
                     <p className="font-bold text-gray-700 group-hover:text-primary-900">Termos de Uso</p>
@@ -189,7 +189,7 @@ export default function SettingsPage() {
               >
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-white rounded-lg shadow-sm group-hover:bg-primary-100 transition-colors">
-                    <Shield size={20} className="text-gray-500 group-hover:text-primary-600" />
+                    <Shield size={20} className="text-gray-500 group-hover:text-brand-blue" />
                   </div>
                   <div>
                     <p className="font-bold text-gray-700 group-hover:text-primary-900">Privacidade</p>
@@ -206,7 +206,7 @@ export default function SettingsPage() {
               >
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-white rounded-lg shadow-sm group-hover:bg-primary-100 transition-colors">
-                    <Save size={20} className={`text-gray-500 group-hover:text-primary-600 ${isExporting ? 'animate-bounce' : ''}`} />
+                    <Save size={20} className={`text-gray-500 group-hover:text-brand-blue ${isExporting ? 'animate-bounce' : ''}`} />
                   </div>
                   <div className="text-left">
                     <p className="font-bold text-gray-700 group-hover:text-primary-900">Exportar Meus Dados</p>
@@ -214,7 +214,7 @@ export default function SettingsPage() {
                   </div>
                 </div>
                 {isExporting ? (
-                  <div className="flex items-center gap-2 text-primary-600 font-bold text-xs">
+                  <div className="flex items-center gap-2 text-brand-blue font-bold text-xs">
                     Processando...
                   </div>
                 ) : (

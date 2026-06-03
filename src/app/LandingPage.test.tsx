@@ -32,16 +32,12 @@ describe("LandingPage", () => {
     });
   });
 
-  it("renders the footer logo without brightness-0 invert classes", () => {
+  it("renders the footer logo without inversion classes (since footer is white)", () => {
     render(<LandingPage />);
     
-    // Find all images with Unum People Logo alt text
-    const logos = screen.getAllByAltText("Unum People Logo");
-    
-    // The footer logo is usually the second one (first is in nav)
-    // But let's check both or find the one in the footer
-    const footer = screen.getByRole("contentinfo"); // <footer> usually has role contentinfo
-    const footerLogo = footer.querySelector('img[alt="Unum People Logo"]');
+    const footer = screen.getByRole("contentinfo");
+    // In footer we now only have the logo_texto which has alt="Unum People"
+    const footerLogo = footer.querySelector('img[alt="Unum People"]');
     
     expect(footerLogo).toBeInTheDocument();
     expect(footerLogo?.className).not.toContain("brightness-0");

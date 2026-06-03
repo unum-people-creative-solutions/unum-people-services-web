@@ -81,7 +81,7 @@ export default function OnboardingPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
       <div className="bg-white p-8 rounded-lg shadow-xl w-full max-w-lg border-t-4 border-primary-600">
         <div className="flex justify-center mb-6">
-          <Image src="/images/logo_texto.png" alt="Unum People" width={200} height={60} className="object-contain" priority />
+          <Image src="/images/logo_texto.webp" alt="Unum People" width={200} height={60} className="object-contain" priority />
         </div>
         
         <h1 className="text-2xl font-bold text-gray-800 text-center mb-2">Configuração da sua Conta</h1>

@@ -75,19 +75,19 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
-      <div className="bg-white p-8 rounded-lg shadow-xl w-full max-w-md border-t-4 border-primary-600">
-        <Link href="/login" className="flex items-center gap-2 text-gray-500 hover:text-primary-600 text-sm mb-6 transition-colors">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4 font-sans">
+      <div className="bg-white p-8 rounded-lg shadow-xl w-full max-w-md border-t-4 border-brand-blue">
+        <Link href="/login" className="flex items-center gap-2 text-support-grey hover:text-brand-orange text-sm mb-6 transition-colors">
           <ArrowLeft size={16} /> Voltar ao Login
         </Link>
         
-        <h1 className="text-2xl font-bold mb-2 text-gray-800">Recuperar Senha</h1>
+        <h1 className="text-2xl font-bold mb-2 text-brand-blue">Recuperar Senha</h1>
         
         {step === 1 ? (
           <>
-            <p className="text-gray-500 text-sm mb-6">Insira seu e-mail para receber um código de verificação.</p>
+            <p className="text-support-grey text-sm mb-6">Insira seu e-mail para receber um código de verificação.</p>
             <form onSubmit={forgotForm.handleSubmit(handleRequestCode)} className="space-y-4">
-              {error && <div className="p-3 bg-red-50 text-red-600 text-xs rounded-md text-center">{error}</div>}
+              {error && <div className="p-3 bg-red-50 text-brand-orange text-xs rounded-md text-center">{error}</div>}
               <Input
                 label="E-mail"
                 type="email"
@@ -97,7 +97,7 @@ export default function ForgotPasswordPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-primary-600 text-white p-3 rounded-md font-bold hover:bg-primary-700 transition-colors disabled:bg-gray-400"
+                className="w-full bg-brand-orange text-white p-3 rounded-md font-bold hover:brightness-110 transition-colors disabled:bg-support-grey/50"
               >
                 {loading ? "Enviando..." : "Enviar Código"}
               </button>
@@ -105,9 +105,9 @@ export default function ForgotPasswordPage() {
           </>
         ) : (
           <>
-            <p className="text-gray-500 text-sm mb-6">Insira o código enviado para <b>{email}</b> e sua nova senha.</p>
+            <p className="text-support-grey text-sm mb-6">Insira o código enviado para <b className="text-gray-900">{email}</b> e sua nova senha.</p>
             <form onSubmit={resetForm.handleSubmit(handleResetPassword)} className="space-y-4">
-              {error && <div className="p-3 bg-red-50 text-red-600 text-xs rounded-md text-center">{error}</div>}
+              {error && <div className="p-3 bg-red-50 text-brand-orange text-xs rounded-md text-center">{error}</div>}
               <Input
                 label="Código de Verificação"
                 placeholder="6 dígitos"
@@ -124,7 +124,7 @@ export default function ForgotPasswordPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-primary-600 text-white p-3 rounded-md font-bold hover:bg-primary-700 transition-colors disabled:bg-gray-400"
+                className="w-full bg-brand-orange text-white p-3 rounded-md font-bold hover:brightness-110 transition-colors disabled:bg-support-grey/50"
               >
                 {loading ? "Redefinindo..." : "Redefinir Senha"}
               </button>
