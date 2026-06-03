@@ -69,7 +69,7 @@ export default function Navbar({
           <div className="flex items-center gap-4 flex-1 min-w-0">
             <Link href="/kanban" className="flex-shrink-0">
               <Image 
-                src="/images/logo_simbolo.png" 
+                src="/images/logo_simbolo.webp" 
                 alt="Unum People" 
                 width={36} 
                 height={32} 
@@ -129,7 +129,7 @@ export default function Navbar({
                       <div className="p-6">
                         <div className="flex justify-between items-center mb-8">
                           <Image 
-                            src="/images/logo_simbolo.png" 
+                            src="/images/logo_simbolo.webp" 
                             alt="Unum People" 
                             width={40} 
                             height={36} 

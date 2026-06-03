@@ -25,7 +25,7 @@ describe('Input Component', () => {
     
     expect(screen.getByText('Senha obrigatória')).toBeInTheDocument();
     const input = screen.getByLabelText('Senha');
-    expect(input).toHaveClass('border-red-500');
+    expect(input).toHaveClass('border-brand-orange');
   });
 
   it('deve renderizar o ícone quando fornecido', () => {

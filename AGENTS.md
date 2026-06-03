@@ -1,19 +1,36 @@
-# Unum People Services Web - Guia do Agente
+# AGENTS.md - Orientação e Orquestração (TLC 2.0)
 
-Este repositório contém o frontend principal (Next.js) e o empacotamento TWA para Android.
+Este repositório opera sob a metodologia **Elite SaaS** e o ciclo de vida **TLC 2.0**.
 
-## 🚀 Workflow TLC (Obrigatório)
-Este projeto utiliza o framework **tlc-spec-driven**. Para qualquer nova implementação:
-1.  **Aprovação Prévia (TDD na Raiz)**: JAMAIS inicie a implementação de código sem antes gerar um Documento de Design Técnico (TDD) detalhado na raiz do projeto e obter aprovação explícita do usuário antes de iniciar a execução.
-2.  Consulte a especificação de baseline em `baseline_frontend_spec.md`.
-3.  Siga o workflow global definido em `../../.specs/codebase/rules.md`.
+## 🏛️ Máquina de Estados do Ciclo de Vida
+Diretriz absoluta: **NENHUMA LINHA DE CÓDIGO DE PRODUÇÃO OU TESTE DEVE SER ESCRITA ANTES DA FASE 5.**
 
-## 🛠️ Skills e Ferramentas
--   **Skill Recomendada**: `tlc-spec-driven` para planejar e executar mudanças.
--   **UI de Elite**: `tailwind-expert` e `react-best-practices` quando aplicável.
--   **Comandos**:
-    *   `npm run dev`: Ambiente local.
-    *   `npm test`: Executar Vitest/RTL (TDD mandatório).
+1. **FASE 1: DISCOVERY** - Alinhamento de escopo e restrições.
+2. **FASE 2: ARCHITECTURE** - Mapeamento via `codenavi` e criação do `TDD-*.md`.
+3. **FASE 3: DESIGN & UI** - Definição visual via `frontend-blueprint`.
+4. **FASE 4: SPECIFICATION** - Backlog e Planos de Teste via `tlc-spec-driven`.
+5. **FASE 5: EXECUTION** - Implementação via Pipeline de Personas.
 
----
-*Para regras detalhadas de design e mobile-first, consulte `.specs/codebase/` na raiz.*
+## 🎭 Pipeline de Execução (Handoff Sequencial)
+A Fase 5 exige a separação rígida de responsabilidades:
+
+### 1. Agente QA (Analista de Qualidade)
+- **Objetivo**: Criar testes que falham (**RED**) baseados no `TDD-*.md`.
+- **Foco**: Acessibilidade (`getByRole`), Happy Path e Edge Cases.
+- **Handoff**: "Testes escritos e falhando. Handoff para o Agente Executor."
+
+### 2. Agente Executor (Engenheiro de Software)
+- **Objetivo**: Implementar o código mínimo para passar os testes (**GREEN**).
+- **Skills**: `tailwind-expert`, `react-best-practices`, `terraform-expert`, etc.
+- **Handoff**: "Código implementado. Testes passando. Handoff para o Agente Auditor."
+
+### 3. Agente Auditor (Revisor)
+- **Objetivo**: Validar segurança (`security-best-practices`), convenções e cobertura.
+- **Handoff**: "Auditoria concluída. Task marcada como DONE."
+
+## 🛡️ Regras e Harness
+Consulte estritamente o arquivo `.specs/RULES.md` para restrições técnicas e comportamentais inquebráveis.
+
+## 📝 Comandos e Contexto Local
+Public web interface for scalable services.
+

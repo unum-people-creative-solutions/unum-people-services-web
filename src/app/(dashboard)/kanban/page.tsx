@@ -602,7 +602,7 @@ function KanbanContent() {
             className="flex items-center gap-2 bg-white border border-gray-200 px-4 py-2 rounded-lg text-xs font-bold text-gray-700 hover:bg-gray-50 transition-all shadow-sm active:scale-95 disabled:opacity-50"
             title="Exportar Relatório de Vendas (CSV)"
           >
-            <TrendingUp size={14} className={isExporting ? "animate-pulse text-primary-600" : "text-gray-400"} />
+            <TrendingUp size={14} className={isExporting ? "animate-pulse text-brand-blue" : "text-gray-400"} />
             {isExporting ? "Exportando..." : "Exportar Relatório"}
           </button>
         </div>
@@ -625,7 +625,7 @@ function KanbanContent() {
             disabled={isExporting}
             className="p-2 bg-white border border-gray-200 rounded-xl shadow-sm active:scale-90 transition-all text-gray-500"
           >
-            <TrendingUp size={16} className={isExporting ? "animate-pulse text-primary-600" : ""} />
+            <TrendingUp size={16} className={isExporting ? "animate-pulse text-brand-blue" : ""} />
           </button>
         </div>
       </Navbar>
@@ -645,7 +645,7 @@ function KanbanContent() {
         <button 
           onClick={() => loadLeads()}
           disabled={loading}
-          className={`p-2.5 text-primary-600 bg-primary-50 rounded-xl active:scale-95 transition-all border border-primary-100 shadow-sm ${loading ? 'opacity-50' : ''}`}
+          className={`p-2.5 text-brand-blue bg-primary-50 rounded-xl active:scale-95 transition-all border border-primary-100 shadow-sm ${loading ? 'opacity-50' : ''}`}
         >
           <RefreshCw size={18} className={loading ? "animate-spin" : ""} />
         </button>
@@ -657,7 +657,7 @@ function KanbanContent() {
           <div className="fixed inset-0 z-[60] flex items-center justify-center bg-white/30 backdrop-blur-[1.5px] transition-all duration-300 text-gray-900">
             <div className="bg-white p-6 rounded-2xl shadow-2xl border border-gray-100 flex flex-col items-center gap-3 animate-in fade-in zoom-in duration-300">
               <div className="relative flex items-center justify-center">
-                <RefreshCw className="animate-spin text-primary-600" size={42} />
+                <RefreshCw className="animate-spin text-brand-blue" size={42} />
                 <div className="absolute inset-0 animate-ping rounded-full border-4 border-primary-100 opacity-20"></div>
               </div>
               <div className="text-center">
@@ -712,18 +712,18 @@ function KanbanContent() {
                                     <div className="absolute top-2 right-2 flex gap-1">
                                       <button 
                                         onClick={() => handleEditClick(lead)} 
-                                        className="p-1.5 text-gray-400 hover:text-primary-600 md:opacity-0 md:group-hover:opacity-100 transition-all bg-gray-50 md:bg-transparent rounded-md active:bg-gray-100"
+                                        className="p-1.5 text-gray-400 hover:text-brand-blue md:opacity-0 md:group-hover:opacity-100 transition-all bg-gray-50 md:bg-transparent rounded-md active:bg-gray-100"
                                       >
                                         <Edit2 size={14} />
                                       </button>
                                       <button 
                                         onClick={() => { setQuickMoveLead(lead); setIsQuickMoveModalOpen(true); }} 
-                                        className="md:hidden p-1.5 text-primary-600 bg-primary-50 rounded-md active:bg-primary-100 transition-colors"
+                                        className="md:hidden p-1.5 text-brand-blue bg-primary-50 rounded-md active:bg-primary-100 transition-colors"
                                       >
                                         <ArrowRightLeft size={14} />
                                       </button>
                                     </div>
-                                    <div className="font-bold text-gray-900 group-hover:text-primary-600 transition-colors truncate pr-16" title={lead.nome}>{lead.nome}</div>
+                                    <div className="font-bold text-gray-900 group-hover:text-brand-blue transition-colors truncate pr-16" title={lead.nome}>{lead.nome}</div>
                                     
                                     <div className="flex items-center justify-between mt-1 gap-2">
                                       <div className="text-xs text-gray-500 truncate flex-1">{lead.telefone}</div>
@@ -760,7 +760,7 @@ function KanbanContent() {
                                     )}
 
                                     {totalLtv > monthTotal && (
-                                      <div className="text-[9px] text-primary-500 font-bold uppercase mt-1">
+                                      <div className="text-[9px] text-brand-purple font-bold uppercase mt-1">
                                         LTV: {formatCurrency(totalLtv)}
                                       </div>
                                     )}
@@ -878,7 +878,7 @@ function KanbanContent() {
                     <label className="block text-sm font-bold text-gray-700 mb-1">Origem</label>
                     <select 
                       {...createLeadForm.register("origem")}
-                      className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-primary-500 bg-white"
+                      className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-brand-blue bg-white"
                     >
                       <option value="Indicação">Indicação</option>
                       <option value="WhatsApp">WhatsApp</option>
@@ -892,12 +892,12 @@ function KanbanContent() {
                     <label className="block text-sm font-bold text-gray-700 mb-1">Anotações</label>
                     <textarea 
                       {...createLeadForm.register("anotacoes")}
-                      className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-primary-500 min-h-[80px] text-sm"
+                      className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-brand-blue min-h-[80px] text-sm"
                       placeholder="Observações iniciais..."
                     />
                     {createLeadForm.formState.errors.anotacoes && <p className="text-red-500 text-xs mt-1">{createLeadForm.formState.errors.anotacoes.message}</p>}
                   </div>
-                  <button type="submit" className="w-full bg-primary-600 text-white p-3 rounded-md font-bold hover:bg-primary-700 shadow-lg transition-all mt-4">Criar Lead</button>
+                  <button type="submit" className="w-full bg-brand-orange text-white p-3 rounded-md font-bold hover:brightness-110 shadow-lg transition-all mt-4">Criar Lead</button>
                 </form>
               </div>
             </motion.div>
@@ -1016,7 +1016,7 @@ function KanbanContent() {
               <div className="shrink-0 px-6 pt-6">
                 <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-4 md:hidden" />
                 <div className="flex justify-between items-center mb-6 border-b pb-4">
-                  <h2 className="text-lg font-bold flex items-center gap-2"><Edit2 size={18} className="text-primary-600" /> Editar Lead</h2>
+                  <h2 className="text-lg font-bold flex items-center gap-2"><Edit2 size={18} className="text-brand-blue" /> Editar Lead</h2>
                   <div className="flex items-center gap-2">
                     <button 
                       type="button" 
@@ -1090,7 +1090,7 @@ function KanbanContent() {
                       ) : (
                         <select 
                           {...editLeadForm.register("origem")}
-                          className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-primary-500 bg-white"
+                          className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-brand-blue bg-white"
                         >
                           <option value="Indicação">Indicação</option>
                           <option value="WhatsApp">WhatsApp</option>
@@ -1105,7 +1105,7 @@ function KanbanContent() {
                       <label className="text-xs font-bold text-gray-500 uppercase">Anotações</label>
                       <textarea 
                         {...editLeadForm.register("anotacoes")}
-                        className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-primary-500 min-h-[100px] text-sm"
+                        className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-brand-blue min-h-[100px] text-sm"
                         placeholder="Adicione observações sobre este lead..."
                       />
                       {editLeadForm.formState.errors.anotacoes && <p className="text-red-500 text-xs mt-1">{editLeadForm.formState.errors.anotacoes.message}</p>}
@@ -1144,7 +1144,7 @@ function KanbanContent() {
 
                   <div className="flex gap-3 mt-8">
                     <button type="button" onClick={() => setIsEditModalOpen(false)} className="flex-1 bg-gray-100 p-3 rounded-md font-bold">Cancelar</button>
-                    <button type="submit" className="flex-1 bg-primary-600 text-white p-3 rounded-md font-bold">Salvar Alterações</button>
+                    <button type="submit" className="flex-1 bg-brand-orange text-white p-3 rounded-md font-bold hover:brightness-110">Salvar Alterações</button>
                   </div>
                 </form>
               </div>

@@ -149,22 +149,22 @@ export default function LoginPage() {
 
   if (isChangingPassword) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
-        <div className="bg-white p-8 rounded-lg shadow-xl w-full max-w-md border-t-4 border-primary-600">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4 font-sans">
+        <div className="bg-white p-8 rounded-lg shadow-xl w-full max-w-md border-t-4 border-brand-blue">
           <div className="flex justify-center mb-6">
             <Image src="/images/logo_texto.png" alt="Unum People" width={200} height={60} className="object-contain" priority />
           </div>
-          <h1 className="text-xl font-bold mb-2 text-gray-800 text-center">Bem-vindo(a)!</h1>
-          <p className="text-gray-500 text-sm text-center mb-8">Este é seu primeiro acesso. Por favor, defina uma senha definitiva.</p>
+          <h1 className="text-xl font-bold mb-2 text-brand-blue text-center">Bem-vindo(a)!</h1>
+          <p className="text-support-grey text-sm text-center mb-8">Este é seu primeiro acesso. Por favor, defina uma senha definitiva.</p>
           <form onSubmit={handleSetNewPassword} className="space-y-4">
-            {error && <div className="p-3 bg-red-50 text-red-600 text-xs rounded-md text-center">{error}</div>}
+            {error && <div className="p-3 bg-red-50 text-brand-orange text-xs rounded-md text-center">{error}</div>}
             <div>
-              <label className="block text-gray-700 text-sm font-bold mb-2">Nova Senha</label>
+              <label className="block text-brand-blue text-sm font-bold mb-2">Nova Senha</label>
               <input
                 type="password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                className="w-full p-3 border rounded-md focus:ring-2 focus:ring-primary-500 outline-none"
+                className="w-full p-3 border border-support-grey/30 rounded-md focus:ring-2 focus:ring-brand-blue outline-none"
                 placeholder="Mínimo 8 caracteres"
                 required
               />
@@ -176,17 +176,17 @@ export default function LoginPage() {
                 id="terms"
                 checked={acceptedTerms}
                 onChange={(e) => setAcceptedTerms(e.target.checked)}
-                className="mt-1 h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded cursor-pointer"
+                className="mt-1 h-4 w-4 text-brand-orange focus:ring-brand-orange border-support-grey/30 rounded cursor-pointer"
               />
-              <label htmlFor="terms" className="text-xs text-gray-600 cursor-pointer leading-tight">
-                Eu li e concordo com os <Link href="/terms" target="_blank" className="text-primary-600 hover:underline">Termos de Uso</Link> e a <Link href="/privacy" target="_blank" className="text-primary-600 hover:underline">Política de Privacidade</Link>.
+              <label htmlFor="terms" className="text-xs text-support-grey cursor-pointer leading-tight">
+                Eu li e concordo com os <Link href="/terms" target="_blank" className="text-brand-orange font-bold hover:underline">Termos de Uso</Link> e a <Link href="/privacy" target="_blank" className="text-brand-orange font-bold hover:underline">Política de Privacidade</Link>.
               </label>
             </div>
 
             <button
               type="submit"
               disabled={loading || !acceptedTerms}
-              className="w-full bg-primary-600 text-white p-3 rounded-md font-bold hover:bg-primary-700 transition-colors disabled:bg-gray-300 disabled:cursor-not-allowed"
+              className="w-full bg-brand-orange text-white p-3 rounded-md font-bold hover:brightness-110 transition-colors disabled:bg-support-grey/50 disabled:cursor-not-allowed"
             >
               {loading ? "Salvando..." : "Confirmar e Entrar"}
             </button>
@@ -197,26 +197,26 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
-      <div className="bg-white p-8 rounded-lg shadow-xl w-full max-w-md border-t-4 border-primary-600">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4 font-sans">
+      <div className="bg-white p-8 rounded-lg shadow-xl w-full max-w-md border-t-4 border-brand-blue">
         <div className="flex flex-col items-center mb-10 text-center">
           <Image 
-            src="/images/logo_simbolo.png" 
+            src="/images/logo_simbolo.webp" 
             alt="Unum People" 
             width={60} 
             height={60} 
             className="object-contain mb-4"
             priority 
           />
-          <h1 className="text-3xl font-black text-primary-900 uppercase tracking-tighter">
-            Unum People <span className="text-primary-600 font-black">CRM</span>
+          <h1 className="text-3xl font-black text-brand-blue uppercase tracking-tighter">
+            Unum People <span className="text-brand-blue font-black">CRM</span>
           </h1>
-          <p className="text-gray-500 text-xs font-bold uppercase tracking-widest mt-2 opacity-60">
+          <p className="text-support-grey text-xs font-bold uppercase tracking-widest mt-2 opacity-60">
             Inteligência em Vendas
           </p>
         </div>
         <form onSubmit={handleSubmit(handleLogin)} className="space-y-5">
-          {error && <div className="p-3 bg-red-50 text-red-600 text-xs rounded-md text-center">{error}</div>}
+          {error && <div className="p-3 bg-red-50 text-brand-orange text-xs rounded-md text-center">{error}</div>}
           <Input
             label="E-mail ou Usuário"
             type="text"
@@ -227,7 +227,7 @@ export default function LoginPage() {
           <div className="relative">
             <Link 
               href="/forgot-password" 
-              className="absolute right-0 top-0 text-xs text-primary-600 hover:underline z-10"
+              className="absolute right-0 top-0 text-xs text-support-grey font-semibold hover:text-brand-orange transition-colors z-10"
             >
               Esqueci a senha
             </Link>
@@ -242,16 +242,16 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-primary-600 text-white p-3 rounded-md font-bold hover:bg-primary-700 transition-all shadow-md disabled:bg-gray-400"
+            className="w-full bg-brand-orange text-white p-3 rounded-md font-bold hover:brightness-110 transition-all shadow-md disabled:bg-support-grey/50"
           >
             {loading ? "Entrando..." : "Entrar no Painel"}
           </button>
         </form>
 
-        <div className="mt-8 pt-6 border-t border-gray-100 flex justify-center space-x-4 text-[10px] text-gray-400 uppercase tracking-widest font-semibold">
-          <Link href="/terms" className="hover:text-primary-600 transition-colors">Termos</Link>
+        <div className="mt-8 pt-6 border-t border-support-grey/20 flex justify-center space-x-4 text-[10px] text-support-grey uppercase tracking-widest font-semibold">
+          <Link href="/terms" className="hover:text-brand-orange transition-colors">Termos</Link>
           <span>•</span>
-          <Link href="/privacy" className="hover:text-primary-600 transition-colors">Privacidade</Link>
+          <Link href="/privacy" className="hover:text-brand-orange transition-colors">Privacidade</Link>
         </div>
       </div>
     </div>
