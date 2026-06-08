@@ -23,6 +23,10 @@ api.interceptors.response.use(
         window.location.href = '/login';
       }
     }
+    if (error.response?.status === 403) {
+      console.error("Acesso negado a este recurso.");
+      // Opcional: Redirecionar para uma página de upgrade ou erro
+    }
     return Promise.reject(error);
   }
 );

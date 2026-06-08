@@ -71,6 +71,18 @@ export default function LoginPage() {
       } else {
         // Sincroniza o nome do inquilino primário na sessão
         const primaryTenant = myTenants[0];
+
+        // Verificação de Serviço Habilitado (CRM)
+        // Se a lista estiver vazia, assumimos legado (CRM habilitado por padrão)
+        const services = primaryTenant.enabled_services || [];
+        const hasCRM = services.includes("crm") || (services.length === 0 && !primaryTenant.site_url);
+        
+        if (!hasCRM && !isGlobalAdmin) {
+          setError("Seu plano não possui acesso ao CRM. Entre em contato com o suporte.");
+          setLoading(false);
+          return;
+        }
+
         setSession({
           ...sessionData,
           tenantId: primaryTenant.id,
