@@ -166,7 +166,7 @@ export default function LoginPage() {
       <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4 font-sans">
         <div className="bg-white p-8 rounded-lg shadow-xl w-full max-w-md border-t-4 border-brand-blue">
           <div className="flex justify-center mb-6">
-            <Image src="/images/logo_texto.png" alt="Unum People" width={200} height={60} className="object-contain" priority />
+            <Image src="/images/logo_texto.webp" alt="Unum People" width={200} height={60} className="object-contain" priority />
           </div>
           <h1 className="text-xl font-bold mb-2 text-brand-blue text-center">Bem-vindo(a)!</h1>
           <p className="text-support-grey text-sm text-center mb-8">Este é seu primeiro acesso. Por favor, defina uma senha definitiva.</p>
