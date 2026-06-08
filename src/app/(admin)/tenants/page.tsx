@@ -11,11 +11,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { tenantSchema, userInviteSchema } from "@/lib/validations";
+import { userInviteSchema } from "@/lib/validations";
 import { Input } from "@/components/ui/Input";
 import { z } from "zod";
 
-type TenantFormValues = z.infer<typeof tenantSchema>;
 type UserInviteFormValues = z.infer<typeof userInviteSchema>;
 
 // Sub-componente para gerenciar notificações push por tenant
@@ -87,7 +86,6 @@ export default function TenantsPage() {
   const [loading, setLoading] = useState(true);
   
   // Modais
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [selectedTenantForUser, setSelectedTenantForUser] = useState<string>("");
   
@@ -95,14 +93,6 @@ export default function TenantsPage() {
   const router = useRouter();
 
   const [isMobile, setIsMobile] = useState(false);
-
-  const tenantForm = useForm<TenantFormValues>({
-    resolver: zodResolver(tenantSchema),
-    defaultValues: {
-      nicho: "MEDICINA",
-      use_mcc_auth: true
-    }
-  });
 
   const userInviteForm = useForm<UserInviteFormValues>({
     resolver: zodResolver(userInviteSchema),
@@ -137,21 +127,6 @@ export default function TenantsPage() {
     }
   };
 
-  const handleCreate = async (data: TenantFormValues) => {
-    try {
-      const payload = { 
-        ...data, 
-        email_contato: data.email_contato.toLowerCase().trim() 
-      };
-      await TenantService.create(payload);
-      setIsModalOpen(false);
-      tenantForm.reset();
-      loadTenants();
-    } catch (err) {
-      alert("Falha ao criar inquilino");
-    }
-  };
-
   const handleCreateUser = async (data: UserInviteFormValues) => {
     try {
       const payload = { 
@@ -176,10 +151,7 @@ export default function TenantsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col text-gray-900">
-      <Navbar 
-        onNewLead={() => setIsModalOpen(true)}
-        newLeadLabel="Cadastrar Inquilino"
-      />
+      <Navbar />
 
       <main className="p-4 md:p-8 max-w-[1600px] mx-auto w-full">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
@@ -338,122 +310,6 @@ export default function TenantsPage() {
           )}
         </div>
       </main>
-
-      {/* Modal Novo Inquilino */}
-      <AnimatePresence>
-        {isModalOpen && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setIsModalOpen(false)}
-            className="fixed inset-0 bg-black/50 flex items-end md:items-center justify-center md:p-4 z-50"
-          >
-            <motion.div 
-              initial={isMobile ? { y: "100%" } : { scale: 0.9, opacity: 0 }}
-              animate={isMobile ? { y: 0 } : { scale: 1, opacity: 1 }}
-              exit={isMobile ? { y: "100%" } : { scale: 0.9, opacity: 0 }}
-              transition={isMobile ? { type: "spring", damping: 25, stiffness: 300 } : { duration: 0.2 }}
-              drag={isMobile ? "y" : false}
-              dragConstraints={{ top: 0, bottom: 0 }}
-              dragElastic={0.2}
-              onDragEnd={(_, info) => {
-                if (isMobile && info.offset.y > 150) {
-                  setIsModalOpen(false);
-                }
-              }}
-              onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-t-[32px] md:rounded-lg w-full max-w-md shadow-xl text-gray-900 max-h-[95vh] flex flex-col overflow-hidden"
-            >
-              <div className="shrink-0 px-6 pt-6">
-                <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto mb-4 md:hidden" />
-                <div className="flex justify-between items-center mb-6 border-b pb-4">
-                  <h2 className="text-lg font-bold">Cadastrar Novo Inquilino</h2>
-                  <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600">
-                    <X size={20} />
-                  </button>
-                </div>
-              </div>
-
-              <div className="overflow-y-auto flex-1 px-6 pb-6 custom-scrollbar">
-                <form onSubmit={tenantForm.handleSubmit(handleCreate)} className="space-y-4">
-                  <div className="bg-gray-50 p-4 rounded-md border border-gray-100 space-y-4">
-                    <h3 className="text-xs font-black uppercase tracking-widest text-gray-400 mb-2">Dados da Empresa</h3>
-                    <Input 
-                      label="Nome do Negócio"
-                      icon={<Building size={14}/>}
-                      {...tenantForm.register("nome_negocio")}
-                      error={tenantForm.formState.errors.nome_negocio?.message}
-                      placeholder="Ex: Clínica Sorriso"
-                    />
-                    <div>
-                      <label className="block text-sm font-bold text-gray-700 mb-1 flex items-center gap-2"><Briefcase size={14}/> Nicho</label>
-                      <select 
-                        {...tenantForm.register("nicho")}
-                        className="w-full border p-2 rounded-md outline-none focus:ring-2 focus:ring-primary-500 bg-white font-bold"
-                      >
-                        <option value="MEDICINA">Medicina / Clínicas</option>
-                        <option value="ODONTOLOGIA">Odontologia</option>
-                        <option value="ESTETICA">Estética / Saúde</option>
-                        <option value="PSICOLOGIA">Psicologia</option>
-                        <option value="DIREITO">Direito / Advogados</option>
-                        <option value="IMOBILIARIO">Imobiliário / Corretores</option>
-                        <option value="FITNESS">Fitness / Academias</option>
-                        <option value="EDUCACAO">Educação / Cursos</option>
-                        <option value="ENERGIA_SOLAR">Energia Solar</option>
-                        <option value="SERVICOS_PROFISSIONAIS">Serviços Profissionais</option>
-                        <option value="VAREJO">Varejo / Comércio Local</option>
-                        <option value="OUTRO">Outro</option>
-                      </select>
-                      {tenantForm.formState.errors.nicho && <p className="text-red-500 text-xs mt-1">{tenantForm.formState.errors.nicho.message}</p>}
-                    </div>
-                    <Input 
-                      label="ID Google Ads (Opcional)"
-                      icon={<Hash size={14}/>}
-                      {...tenantForm.register("google_ads_customer_id")}
-                      error={tenantForm.formState.errors.google_ads_customer_id?.message}
-                      placeholder="000-000-0000"
-                    />
-                  </div>
-
-                  <div className="bg-primary-50 p-4 rounded-md border border-primary-100 space-y-4">
-                    <h3 className="text-xs font-black uppercase tracking-widest text-primary-400 mb-2">Usuário Administrador</h3>
-                    <Input 
-                      label="Nome Completo"
-                      icon={<User size={14}/>}
-                      {...tenantForm.register("nome_admin")}
-                      error={tenantForm.formState.errors.nome_admin?.message}
-                      placeholder="Nome da pessoa"
-                    />
-                    <Input 
-                      label="E-mail de Acesso"
-                      icon={<Mail size={14}/>}
-                      type="email"
-                      {...tenantForm.register("email_contato")}
-                      error={tenantForm.formState.errors.email_contato?.message}
-                      placeholder="email@exemplo.com"
-                    />
-                  </div>
-
-                  <div className="flex items-center gap-2 py-2 bg-purple-50 p-2 rounded-md">
-                    <input 
-                      type="checkbox" 
-                      id="mcc" 
-                      {...tenantForm.register("use_mcc_auth")}
-                      className="w-4 h-4 text-primary-600 rounded" 
-                    />
-                    <label htmlFor="mcc" className="text-xs text-purple-900 font-bold cursor-pointer">Usar minha MCC de Gestor</label>
-                  </div>
-                  
-                  <button type="submit" className="w-full bg-primary-600 text-white p-3 rounded-md font-bold hover:bg-primary-700 transition-colors shadow-lg">
-                    Ativar Inquilino e Criar Admin
-                  </button>
-                </form>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Modal Novo Usuário para Tenant Existente */}
       <AnimatePresence>
