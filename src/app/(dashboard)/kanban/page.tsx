@@ -300,8 +300,8 @@ function KanbanContent() {
       const userRole = session?.role;
       const sessionTenantId = session?.tenantId;
 
-      let data = userRole === "GlobalAdmin" ? await TenantService.list() : await TenantService.listMyTenants();
-      const tenantsData = data || [];
+      let data = userRole === "GlobalAdmin" ? await TenantService.list() : await TenantService.listMyTenants("crm");
+      const tenantsData = (data || []).sort((a: any, b: any) => Number(a.is_blocked || false) - Number(b.is_blocked || false));
       setTenants(tenantsData);
 
       if (!selectedTenantId && tenantsData.length > 0) {
@@ -577,8 +577,28 @@ function KanbanContent() {
         <div className="hidden md:flex items-center gap-3">
           <div className="hidden md:flex items-center bg-primary-50 rounded-lg p-1 border border-primary-100">
             <Building size={14} className="text-primary-400 ml-2" />
-            <select value={selectedTenantId} onChange={(e) => setSelectedTenantId(e.target.value)} className="bg-transparent border-none text-xs font-bold text-primary-800 p-2 cursor-pointer max-w-[180px]">
-              {tenants.map(t => <option key={t.id} value={t.id}>{t.nome_negocio}</option>)}
+            <select 
+              value={selectedTenantId} 
+              onChange={(e) => {
+                const selected = tenants.find(t => t.id === e.target.value);
+                if (selected?.is_blocked) {
+                  e.target.value = selectedTenantId;
+                  return;
+                }
+                setSelectedTenantId(e.target.value);
+              }} 
+              className="bg-transparent border-none text-xs font-bold text-primary-800 p-2 cursor-pointer max-w-[180px]"
+            >
+              {tenants.map(t => (
+                <option 
+                  key={t.id} 
+                  value={t.id} 
+                  disabled={t.is_blocked}
+                  className={t.is_blocked ? "text-support-grey" : ""}
+                >
+                  {t.nome_negocio}{t.is_blocked ? " · Bloqueado" : ""}
+                </option>
+              ))}
             </select>
           </div>
           <div className="flex items-center bg-gray-100 rounded-lg p-1">

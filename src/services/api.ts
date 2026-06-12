@@ -23,6 +23,11 @@ api.interceptors.response.use(
         window.location.href = '/login';
       }
     }
+    if (error.response?.status === 403) {
+      if (typeof window !== 'undefined' && !window.location.pathname.includes('/acesso-negado')) {
+        window.location.href = '/acesso-negado';
+      }
+    }
     return Promise.reject(error);
   }
 );
@@ -102,8 +107,12 @@ export const TenantService = {
     const response = await api.get('/admin/tenants');
     return response.data;
   },
-  listMyTenants: async () => {
-    const response = await api.get('/me/tenants');
+  listMyTenants: async (service?: string) => {
+    let url = '/me/tenants';
+    if (service) {
+      url += `?service=${service}`;
+    }
+    const response = await api.get(url);
     return response.data;
   },
   create: async (data: { nome_negocio: string; nome_admin: string; email_contato: string; nicho: string; google_ads_customer_id?: string; use_mcc_auth?: boolean }) => {

@@ -123,4 +123,103 @@ describe('KanbanPage', () => {
     const { writeFile } = await import('xlsx');
     expect(writeFile).toHaveBeenCalled();
   });
+
+  it('T-04.1: deve chamar TenantService.listMyTenants com o argumento "crm" para usuario nao-GlobalAdmin', async () => {
+    (useAuthStore as any).mockReturnValue({
+      session: { email: 'user@test.com', name: 'User', tenantId: 'tenant-1', role: 'USER' },
+      logout: vi.fn(),
+      setSession: vi.fn(),
+    });
+    
+    render(<KanbanPage />);
+    
+    await waitFor(() => {
+      expect(TenantService.listMyTenants).toHaveBeenCalledWith('crm');
+    });
+  });
+
+  it('T-04.2: deve chamar TenantService.list (sem argumentos) para usuario GlobalAdmin', async () => {
+    (useAuthStore as any).mockReturnValue({
+      session: { email: 'admin@test.com', name: 'Admin', tenantId: 'tenant-1', role: 'GlobalAdmin' },
+      logout: vi.fn(),
+      setSession: vi.fn(),
+    });
+    
+    render(<KanbanPage />);
+    
+    await waitFor(() => {
+      expect(TenantService.list).toHaveBeenCalledWith();
+    });
+  });
+
+  describe('Inquilinos Bloqueados (Multi-Tenant)', () => {
+    const mockTenantsWithBlocked = [
+      { id: 'tenant-1', nome_negocio: 'Active Tenant', is_blocked: false },
+      { id: 'tenant-2', nome_negocio: 'Blocked Tenant', is_blocked: true },
+      { id: 'tenant-3', nome_negocio: 'Another Active Tenant', is_blocked: false },
+    ];
+
+    beforeEach(() => {
+      (useAuthStore as any).mockReturnValue({
+        session: { email: 'user@test.com', name: 'User', tenantId: 'tenant-1', role: 'USER' },
+        logout: vi.fn(),
+        setSession: vi.fn(),
+      });
+      (TenantService.listMyTenants as any).mockResolvedValue(mockTenantsWithBlocked);
+    });
+
+    it('T-05.1: deve renderizar inquilino bloqueado como desabilitado e marcado como bloqueado no desktop select e no menu mobile', async () => {
+      const user = userEvent.setup();
+      render(<KanbanPage />);
+      
+      // No Desktop Select:
+      // Espera-se que a opção do inquilino bloqueado esteja desabilitada e contenha "Bloqueado"
+      await waitFor(() => {
+        const option = screen.getByRole('option', { name: /Blocked Tenant.*Bloqueado/i });
+        expect(option).toBeDisabled();
+      });
+
+      // No Menu Mobile:
+      // Abre o menu principal
+      const menuBtn = screen.getByRole('button', { name: /Menu Principal/i });
+      await user.click(menuBtn);
+
+      // Espera-se que o botão no menu mobile esteja desabilitado e contenha "Bloqueado"
+      const mobileButton = screen.getByRole('button', { name: /Blocked Tenant.*Bloqueado/i });
+      expect(mobileButton).toBeDisabled();
+    });
+
+    it('T-05.2: inquilinos bloqueados devem aparecer no final da lista de selecao', async () => {
+      render(<KanbanPage />);
+      
+      await waitFor(() => {
+        const options = screen.getAllByRole('option');
+        // Deve vir ordenado: Active Tenant, Another Active Tenant, Blocked Tenant
+        expect(options[0]).toHaveValue('tenant-1');
+        expect(options[1]).toHaveValue('tenant-3');
+        expect(options[2]).toHaveValue('tenant-2');
+      });
+    });
+
+    it('T-05.3: clicar ou selecionar um inquilino bloqueado nao deve alterar o inquilino ativo', async () => {
+      const user = userEvent.setup();
+      render(<KanbanPage />);
+      
+      const getTenantSelect = () => {
+        const comboboxes = screen.getAllByRole('combobox') as HTMLSelectElement[];
+        return comboboxes.find(el => el.querySelector('option[value="tenant-1"]')) || comboboxes[0];
+      };
+
+      await waitFor(() => {
+        expect(getTenantSelect()).toHaveValue('tenant-1');
+      });
+
+      const select = getTenantSelect();
+      // Tenta programaticamente mudar para o inquilino bloqueado
+      await user.selectOptions(select, 'tenant-2');
+
+      // Nao deve ter mudado o valor do select (deve continuar tenant-1)
+      expect(select).toHaveValue('tenant-1');
+    });
+  });
 });
