@@ -60,7 +60,7 @@ describe('LoginPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     (useRouter as any).mockReturnValue({ push: mockPush });
-    (useAuthStore as any).mockImplementation((selector) => selector({ setSession: mockSetSession }));
+    (useAuthStore as any).mockImplementation((selector: any) => selector({ setSession: mockSetSession }));
   });
 
   it('deve renderizar o formulário de login e o título completo do sistema', () => {

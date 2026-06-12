@@ -192,23 +192,38 @@ export default function Navbar({
                                 <Building size={14} /> Minhas Contas
                               </div>
                               <div className="grid gap-2 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-                                {tenants.map((tenant) => (
-                                  <button
-                                    key={tenant.id}
-                                    onClick={() => {
-                                      if (onTenantChange) onTenantChange(tenant.id);
-                                      setIsMenuOpen(false);
-                                    }}
-                                    className={`flex items-center justify-between px-6 py-4 rounded-xl transition-all ${
-                                      selectedTenantId === tenant.id 
-                                        ? "bg-primary-600 text-white shadow-lg" 
-                                        : "bg-gray-50 text-gray-700 hover:bg-gray-100"
-                                    }`}
-                                  >
-                                    <span className="font-bold truncate">{tenant.nome_negocio}</span>
-                                    {selectedTenantId === tenant.id && <div className="w-2 h-2 bg-white rounded-full animate-pulse" />}
-                                  </button>
-                                ))}
+                                {tenants.map((tenant) => {
+                                   const isBlocked = tenant.is_blocked;
+                                   return (
+                                     <button
+                                       key={tenant.id}
+                                       disabled={isBlocked}
+                                       aria-disabled={isBlocked}
+                                       aria-label={`${tenant.nome_negocio}${isBlocked ? " · Bloqueado" : ""}`}
+                                       onClick={() => {
+                                         if (isBlocked) return;
+                                         if (onTenantChange) onTenantChange(tenant.id);
+                                         setIsMenuOpen(false);
+                                       }}
+                                       className={`flex items-center justify-between px-6 py-4 rounded-xl transition-all ${
+                                         isBlocked
+                                           ? "opacity-40 cursor-not-allowed text-gray-400 bg-gray-50"
+                                           : selectedTenantId === tenant.id 
+                                             ? "bg-primary-600 text-white shadow-lg" 
+                                             : "bg-gray-50 text-gray-700 hover:bg-gray-100"
+                                       }`}
+                                     >
+                                       <span className="font-bold truncate">{tenant.nome_negocio}</span>
+                                       {isBlocked ? (
+                                         <span className="bg-red-50 text-red-600 border border-red-200 px-2 py-0.5 rounded text-[10px] font-bold uppercase ml-2 flex-shrink-0">
+                                           Bloqueado
+                                         </span>
+                                       ) : (
+                                         selectedTenantId === tenant.id && <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                                       )}
+                                     </button>
+                                   );
+                                 })}
                               </div>
                             </div>
                           )}

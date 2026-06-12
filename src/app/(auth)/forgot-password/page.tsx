@@ -20,6 +20,7 @@ export default function ForgotPasswordPage() {
   const [step, setStep] = useState(1); // 1: Email, 2: Code/Password
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [isFirstAccess, setIsFirstAccess] = useState(false);
   const router = useRouter();
 
   const forgotForm = useForm<ForgotPasswordValues>({
@@ -40,6 +41,7 @@ export default function ForgotPasswordPage() {
   const handleRequestCode = (data: ForgotPasswordValues) => {
     setLoading(true);
     setError("");
+    setIsFirstAccess(false);
     setEmail(data.email);
 
     const cognitoUser = getCognitoUser(data.email);
@@ -49,8 +51,12 @@ export default function ForgotPasswordPage() {
         setStep(2);
         setLoading(false);
       },
-      onFailure: (err) => {
-        setError(err.message || "Erro ao solicitar código");
+      onFailure: (err: any) => {
+        if (err.code === "InvalidParameterException" || err.code === "NotAuthorizedException") {
+          setIsFirstAccess(true);
+        } else {
+          setError(err.message || "Erro ao solicitar código");
+        }
         setLoading(false);
       }
     });
@@ -78,7 +84,7 @@ export default function ForgotPasswordPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4 font-sans">
       <div className="bg-white p-8 rounded-lg shadow-xl w-full max-w-md border-t-4 border-brand-blue">
         <Link href="/login" className="flex items-center gap-2 text-support-grey hover:text-brand-orange text-sm mb-6 transition-colors">
-          <ArrowLeft size={16} /> Voltar ao Login
+          <ArrowLeft size={16} /> Voltar
         </Link>
         
         <h1 className="text-2xl font-bold mb-2 text-brand-blue">Recuperar Senha</h1>
@@ -87,7 +93,17 @@ export default function ForgotPasswordPage() {
           <>
             <p className="text-support-grey text-sm mb-6">Insira seu e-mail para receber um código de verificação.</p>
             <form onSubmit={forgotForm.handleSubmit(handleRequestCode)} className="space-y-4">
-              {error && <div className="p-3 bg-red-50 text-brand-orange text-xs rounded-md text-center">{error}</div>}
+              {isFirstAccess ? (
+                <div role="alert" aria-live="polite" className="p-4 bg-amber-50 border border-amber-200 text-amber-800 text-xs rounded-md space-y-2">
+                  <p className="font-bold">Ação necessária no primeiro acesso</p>
+                  <p>Por favor, utilize a senha temporária enviada para realizar o login antes de redefinir sua senha.</p>
+                  <Link href="/login" className="block font-bold underline hover:text-amber-900 mt-2">
+                    Voltar ao Login
+                  </Link>
+                </div>
+              ) : error ? (
+                <div role="alert" aria-live="polite" className="p-3 bg-red-50 text-brand-orange text-xs rounded-md text-center">{error}</div>
+              ) : null}
               <Input
                 label="E-mail"
                 type="email"
@@ -107,7 +123,7 @@ export default function ForgotPasswordPage() {
           <>
             <p className="text-support-grey text-sm mb-6">Insira o código enviado para <b className="text-gray-900">{email}</b> e sua nova senha.</p>
             <form onSubmit={resetForm.handleSubmit(handleResetPassword)} className="space-y-4">
-              {error && <div className="p-3 bg-red-50 text-brand-orange text-xs rounded-md text-center">{error}</div>}
+              {error && <div role="alert" aria-live="polite" className="p-3 bg-red-50 text-brand-orange text-xs rounded-md text-center">{error}</div>}
               <Input
                 label="Código de Verificação"
                 placeholder="6 dígitos"

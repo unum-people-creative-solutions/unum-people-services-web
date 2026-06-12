@@ -24,8 +24,9 @@ api.interceptors.response.use(
       }
     }
     if (error.response?.status === 403) {
-      console.error("Acesso negado a este recurso.");
-      // Opcional: Redirecionar para uma página de upgrade ou erro
+      if (typeof window !== 'undefined' && !window.location.pathname.includes('/acesso-negado')) {
+        window.location.href = '/acesso-negado';
+      }
     }
     return Promise.reject(error);
   }
