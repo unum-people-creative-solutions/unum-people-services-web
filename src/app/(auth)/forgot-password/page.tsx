@@ -123,10 +123,14 @@ export default function ForgotPasswordPage() {
           <>
             <p className="text-support-grey text-sm mb-6">Insira o código enviado para <b className="text-gray-900">{email}</b> e sua nova senha.</p>
             <form onSubmit={resetForm.handleSubmit(handleResetPassword)} className="space-y-4">
+              {/* Campo oculto para interceptar o autofill do navegador */}
+              <input type="text" autoComplete="username" defaultValue={email} className="hidden" aria-hidden="true" />
+              
               {error && <div role="alert" aria-live="polite" className="p-3 bg-red-50 text-brand-orange text-xs rounded-md text-center">{error}</div>}
               <Input
                 label="Código de Verificação"
                 placeholder="6 dígitos"
+                autoComplete="one-time-code"
                 {...resetForm.register("code")}
                 error={resetForm.formState.errors.code?.message}
               />
@@ -134,6 +138,7 @@ export default function ForgotPasswordPage() {
                 label="Nova Senha"
                 type="password"
                 placeholder="Mínimo 8 caracteres"
+                autoComplete="new-password"
                 {...resetForm.register("newPassword")}
                 error={resetForm.formState.errors.newPassword?.message}
               />
