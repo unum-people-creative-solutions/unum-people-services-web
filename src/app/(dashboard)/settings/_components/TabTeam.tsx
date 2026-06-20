@@ -117,7 +117,9 @@ export default function TabTeam() {
           ) : (
             <AnimatePresence>
               {users.map((u, idx) => {
+                const adminCount = users.filter((user) => user.role?.toLowerCase() === 'tenantadmin' || user.role?.toLowerCase() === 'admin').length;
                 const isTenantAdmin = u.role?.toLowerCase() === 'tenantadmin' || u.role?.toLowerCase() === 'admin';
+                const isLastAdmin = isTenantAdmin && adminCount <= 1;
                 return (
                   <motion.div 
                     initial={{ opacity: 0, y: 10 }}
@@ -156,8 +158,11 @@ export default function TabTeam() {
                       <div className="flex items-center gap-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
                         <button 
                           onClick={() => handleToggleRole(u.email, u.role)} 
-                          disabled={actionLoading !== null}
-                          className="px-3 py-2 text-xs font-bold text-gray-500 hover:text-brand-blue hover:bg-brand-blue/5 rounded-lg transition-colors flex items-center gap-1.5 disabled:opacity-50"
+                          disabled={actionLoading !== null || isLastAdmin}
+                          title={isLastAdmin ? "Único administrador não pode ser rebaixado" : "Alterar Acesso"}
+                          className={`px-3 py-2 text-xs font-bold rounded-lg transition-colors flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed ${
+                            isLastAdmin ? "text-gray-300" : "text-gray-500 hover:text-brand-blue hover:bg-brand-blue/5"
+                          }`}
                         >
                           {actionLoading === `role-${u.email}` ? (
                             <span className="animate-pulse">Aguarde...</span>
@@ -167,9 +172,11 @@ export default function TabTeam() {
                         </button>
                         <button 
                           onClick={() => handleRemove(u.email)} 
-                          disabled={actionLoading !== null}
-                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
-                          title="Remover Membro"
+                          disabled={actionLoading !== null || isLastAdmin}
+                          title={isLastAdmin ? "Único administrador não pode ser removido" : "Remover Membro"}
+                          className={`p-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                            isLastAdmin ? "text-gray-300" : "text-gray-400 hover:text-red-600 hover:bg-red-50"
+                          }`}
                         >
                           {actionLoading === `remove-${u.email}` ? (
                             <div className="w-4 h-4 border-2 border-red-500/30 border-t-red-500 rounded-full animate-spin" />
