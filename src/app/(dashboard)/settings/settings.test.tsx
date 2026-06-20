@@ -147,4 +147,55 @@ describe('SettingsPage', () => {
 
     alertMock.mockRestore();
   });
+
+  describe('SettingsPage - Tabs & Team Management (QA RED)', () => {
+    it('T01 - deve ver a aba "Minha Conta" ativa e o conteúdo pessoal ao carregar a página', () => {
+      render(<SettingsPage />);
+      
+      const tabMyAccount = screen.getByRole('tab', { name: /minha conta/i });
+      expect(tabMyAccount).toBeInTheDocument();
+      // Em uma biblioteca de abas moderna, a aba ativa costuma ter aria-selected="true" ou atributo similar
+      expect(tabMyAccount).toHaveAttribute('aria-selected', 'true');
+      
+      // Verifica se o conteúdo pessoal (já testado acima, mas garantindo a visibilidade na aba certa)
+      expect(screen.getByText('Jared Evans')).toBeInTheDocument();
+      expect(screen.getByText('jared@test.com')).toBeInTheDocument();
+    });
+
+    it('T02 - deve ocultar a aba "Equipe" para usuários comuns (role: user)', () => {
+      // Setup role user
+      (useAuthStore as any).mockReturnValue({
+        session: { ...mockSession, role: 'user' }
+      });
+      render(<SettingsPage />);
+      
+      expect(screen.queryByRole('tab', { name: /equipe/i })).not.toBeInTheDocument();
+    });
+
+    it('T02 - deve exibir a aba "Equipe" para admins', () => {
+      // Setup role admin (já é o default do mock)
+      render(<SettingsPage />);
+      
+      expect(screen.getByRole('tab', { name: /equipe/i })).toBeInTheDocument();
+    });
+
+    it('T03 - deve abrir modal de convite ao clicar em "Convidar Usuário" na aba Equipe', async () => {
+      const user = userEvent.setup();
+      render(<SettingsPage />);
+      
+      // Muda para a aba Equipe
+      const tabTeam = screen.getByRole('tab', { name: /equipe/i });
+      await user.click(tabTeam);
+
+      // Clica em Convidar Usuário
+      const inviteBtn = screen.getByRole('button', { name: /convidar usuário/i });
+      await user.click(inviteBtn);
+
+      // Verifica modal exigindo Nome, Email e Nível
+      expect(screen.getByRole('dialog', { name: /convidar usuário/i })).toBeInTheDocument();
+      expect(screen.getByRole('textbox', { name: /nome/i })).toBeInTheDocument();
+      expect(screen.getByRole('textbox', { name: /e-mail/i })).toBeInTheDocument();
+      expect(screen.getByRole('combobox', { name: /nível/i })).toBeInTheDocument();
+    });
+  });
 });

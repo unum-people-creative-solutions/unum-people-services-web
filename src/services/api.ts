@@ -132,6 +132,22 @@ export const TenantService = {
   deleteAccount: async () => {
     const response = await api.delete('/me/account');
     return response.data;
+  },
+  listUsers: async () => {
+    const response = await api.get('/tenant/users');
+    return response.data;
+  },
+  addUser: async (data: { name: string; email: string; role: string }) => {
+    const response = await api.post('/tenant/users', data);
+    return response.data;
+  },
+  updateUserRole: async (email: string, role: string) => {
+    const response = await api.patch(`/tenant/users?email=${encodeURIComponent(email)}`, { role });
+    return response.data;
+  },
+  removeUser: async (email: string) => {
+    const response = await api.delete(`/tenant/users?email=${encodeURIComponent(email)}`);
+    return response.data;
   }
 };
 
