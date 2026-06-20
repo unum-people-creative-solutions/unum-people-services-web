@@ -80,6 +80,14 @@ export default function TabMyAccount() {
                 <span className="font-medium">{session?.email || "N/A"}</span>
               </div>
             </div>
+
+            <div>
+              <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Nível de Acesso (Cargo)</label>
+              <div className="flex items-center gap-3 p-3 bg-brand-blue/5 rounded-lg border border-brand-blue/20 text-brand-blue">
+                <Shield size={18} />
+                <span className="font-black uppercase tracking-tighter">{session?.role || "Usuário"}</span>
+              </div>
+            </div>
           </div>
         </section>
 
@@ -130,14 +138,6 @@ export default function TabMyAccount() {
                 </p>
               </div>
               <Building size={32} className="text-support-grey/50" />
-            </div>
-
-            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-100">
-              <Shield size={18} className="text-gray-400" />
-              <div>
-                <span className="text-xs font-bold text-gray-500 block">Nível de Autoridade</span>
-                <span className="font-black text-gray-700 uppercase tracking-tighter">{session?.role || "Usuário"}</span>
-              </div>
             </div>
           </div>
         </section>

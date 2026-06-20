@@ -41,7 +41,11 @@ export default function LoginPage() {
     const decoded: any = jwtDecode(idToken);
     const groups = decoded["cognito:groups"] || [];
     const isGlobalAdmin = groups.includes("GlobalAdmin");
-    const role = isGlobalAdmin ? "GlobalAdmin" : "USER";
+    const isTenantAdmin = groups.includes("TenantAdmin");
+    
+    let role = "USER";
+    if (isGlobalAdmin) role = "GlobalAdmin";
+    else if (isTenantAdmin) role = "TenantAdmin";
 
     const sessionData = {
       email: decoded.email,

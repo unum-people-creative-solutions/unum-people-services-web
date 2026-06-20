@@ -6,12 +6,24 @@ import { Shield, User, Users } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import TabMyAccount from "./_components/TabMyAccount";
 import TabTeam from "./_components/TabTeam";
+import { jwtDecode } from "jwt-decode";
 
 export default function SettingsPage() {
   const { session } = useAuthStore();
   const [activeTab, setActiveTab] = useState("my-account");
 
-  const isAdmin = session?.role?.toLowerCase() === "admin";
+  let isTokenAdmin = false;
+  try {
+    if (session?.token) {
+      const decoded: any = jwtDecode(session.token);
+      const groups = decoded["cognito:groups"] || [];
+      isTokenAdmin = groups.includes("TenantAdmin") || groups.includes("admin") || groups.includes("GlobalAdmin");
+    }
+  } catch (e) {
+    console.warn("Erro ao decodificar token", e);
+  }
+
+  const isAdmin = isTokenAdmin || ["admin", "tenantadmin", "globaladmin"].includes(session?.role?.toLowerCase() || "");
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col text-gray-900">
