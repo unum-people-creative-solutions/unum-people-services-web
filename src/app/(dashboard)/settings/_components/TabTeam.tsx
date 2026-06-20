@@ -121,7 +121,7 @@ export default function TabTeam() {
           ) : (
             <AnimatePresence>
               {users.map((u, idx) => {
-                const adminCount = users.filter((user) => user.role?.toLowerCase() === 'tenantadmin' || user.role?.toLowerCase() === 'admin').length;
+                const adminCount = users.filter((user) => user.role?.toLowerCase() === 'tenantadmin' || user.role?.toLowerCase() === 'admin' || user.role === 'GlobalAdmin').length;
                 const isTenantAdmin = u.role?.toLowerCase() === 'tenantadmin' || u.role?.toLowerCase() === 'admin';
                 const isLastAdmin = isTenantAdmin && adminCount <= 1;
                 const isTargetGlobalAdmin = u.role === 'GlobalAdmin' || (u.email === session?.email && isCurrentUserGlobalAdmin);
