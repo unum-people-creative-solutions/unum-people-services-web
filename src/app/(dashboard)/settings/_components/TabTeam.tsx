@@ -124,7 +124,7 @@ export default function TabTeam() {
                 const adminCount = users.filter((user) => user.role?.toLowerCase() === 'tenantadmin' || user.role?.toLowerCase() === 'admin').length;
                 const isTenantAdmin = u.role?.toLowerCase() === 'tenantadmin' || u.role?.toLowerCase() === 'admin';
                 const isLastAdmin = isTenantAdmin && adminCount <= 1;
-                const isTargetGlobalAdmin = u.role === 'GlobalAdmin';
+                const isTargetGlobalAdmin = u.role === 'GlobalAdmin' || (u.email === session?.email && isCurrentUserGlobalAdmin);
                 const disableActions = isLastAdmin || (isTargetGlobalAdmin && !isCurrentUserGlobalAdmin);
                 const actionTitle = disableActions 
                   ? (isTargetGlobalAdmin && !isCurrentUserGlobalAdmin ? "Ação restrita a Global Admins" : "Único administrador não pode ser rebaixado/removido") 
