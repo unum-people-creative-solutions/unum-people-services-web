@@ -125,9 +125,9 @@ export default function TabTeam() {
                 const isTenantAdmin = u.role?.toLowerCase() === 'tenantadmin' || u.role?.toLowerCase() === 'admin';
                 const isLastAdmin = isTenantAdmin && adminCount <= 1;
                 const isTargetGlobalAdmin = u.role === 'GlobalAdmin' || (u.email === session?.email && isCurrentUserGlobalAdmin);
-                const disableActions = isLastAdmin || (isTargetGlobalAdmin && !isCurrentUserGlobalAdmin);
+                const disableActions = isLastAdmin || isTargetGlobalAdmin;
                 const actionTitle = disableActions 
-                  ? (isTargetGlobalAdmin && !isCurrentUserGlobalAdmin ? "Ação restrita a Global Admins" : "Único administrador não pode ser rebaixado/removido") 
+                  ? (isTargetGlobalAdmin ? "Ação restrita ao painel AWS" : "Único administrador não pode ser rebaixado/removido") 
                   : "";
                 return (
                   <motion.div 
@@ -205,8 +205,8 @@ export default function TabTeam() {
                           )}
                         </button>
                       </div>
-                      {disableActions && isTargetGlobalAdmin && !isCurrentUserGlobalAdmin && (
-                        <span className="sr-only">Ação restrita a Global Admins</span>
+                      {disableActions && isTargetGlobalAdmin && (
+                        <span className="sr-only">Ação restrita ao painel AWS</span>
                       )}
                     </div>
                   </motion.div>
