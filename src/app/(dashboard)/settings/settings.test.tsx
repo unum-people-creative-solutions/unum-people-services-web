@@ -4,6 +4,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import SettingsPage from './page';
 import { useAuthStore } from '@/store/authStore';
 import * as pushHooks from '@/hooks/usePushNotifications';
+import { TenantService } from '@/services/api';
 
 // Mocks
 vi.mock('next/navigation', () => ({
@@ -39,6 +40,10 @@ vi.mock('@/hooks/usePushNotifications', () => ({
 vi.mock('@/services/api', () => ({
   TenantService: {
     deleteAccount: vi.fn().mockResolvedValue({}),
+    listUsers: vi.fn().mockResolvedValue([]),
+    updateUserRole: vi.fn().mockResolvedValue({}),
+    removeUser: vi.fn().mockResolvedValue({}),
+    addUser: vi.fn().mockResolvedValue({}),
   }
 }));
 
@@ -179,7 +184,7 @@ describe('SettingsPage', () => {
       expect(screen.getByRole('tab', { name: /equipe/i })).toBeInTheDocument();
     });
 
-    it('T03 - deve abrir modal de convite ao clicar em "Convidar Usuário" na aba Equipe', async () => {
+    it('T03 - deve abrir modal de convite ao clicar em "Convidar Membro" na aba Equipe', async () => {
       const user = userEvent.setup();
       render(<SettingsPage />);
       
@@ -187,15 +192,79 @@ describe('SettingsPage', () => {
       const tabTeam = screen.getByRole('tab', { name: /equipe/i });
       await user.click(tabTeam);
 
-      // Clica em Convidar Usuário
-      const inviteBtn = screen.getByRole('button', { name: /convidar usuário/i });
+      // Clica em Convidar Membro
+      const inviteBtn = screen.getByRole('button', { name: /convidar membro/i });
       await user.click(inviteBtn);
 
       // Verifica modal exigindo Nome, Email e Nível
-      expect(screen.getByRole('dialog', { name: /convidar usuário/i })).toBeInTheDocument();
+      expect(screen.getByRole('dialog', { name: /adicionar membro/i })).toBeInTheDocument();
       expect(screen.getByRole('textbox', { name: /nome/i })).toBeInTheDocument();
       expect(screen.getByRole('textbox', { name: /e-mail/i })).toBeInTheDocument();
       expect(screen.getByRole('combobox', { name: /nível/i })).toBeInTheDocument();
+    });
+
+    it('T04 - RED: deve desabilitar os botões de ação para GlobalAdmin quando o chamador for TenantAdmin', async () => {
+      const user = userEvent.setup();
+      // Chamador: TenantAdmin
+      (useAuthStore as any).mockReturnValue({
+        session: { ...mockSession, role: 'TenantAdmin' }
+      });
+      // Alvo: GlobalAdmin
+      (TenantService.listUsers as any).mockResolvedValue([
+        { id: '1', name: 'Alvo Global', email: 'global@test.com', role: 'GlobalAdmin' }
+      ]);
+      
+      render(<SettingsPage />);
+      
+      // Muda para a aba Equipe
+      const tabTeam = screen.getByRole('tab', { name: /equipe/i });
+      await user.click(tabTeam);
+
+      // Esperar renderizar o usuário
+      await waitFor(() => {
+        expect(screen.getByText('Alvo Global')).toBeInTheDocument();
+      });
+
+      // O botão "Remover Membro" deve estar disabled
+      const removeBtn = screen.getByRole('button', { name: /remover membro/i });
+      expect(removeBtn).toBeDisabled();
+
+      // O botão de "Alterar Acesso" deve estar disabled
+      const changeAccessBtn = screen.getByRole('button', { name: /alterar acesso/i });
+      expect(changeAccessBtn).toBeDisabled();
+
+      // Verificar a badge ou tooltip explicativa
+      expect(screen.getByText(/ação restrita a global admins/i)).toBeInTheDocument();
+    });
+
+    it('T05 - RED: deve habilitar os botões de ação para GlobalAdmin quando o chamador também for GlobalAdmin', async () => {
+      const user = userEvent.setup();
+      // Chamador: GlobalAdmin
+      (useAuthStore as any).mockReturnValue({
+        session: { ...mockSession, role: 'GlobalAdmin' }
+      });
+      // Alvo: GlobalAdmin e outro comum
+      (TenantService.listUsers as any).mockResolvedValue([
+        { id: '1', name: 'Alvo Global', email: 'global@test.com', role: 'GlobalAdmin' },
+        { id: '2', name: 'Comum', email: 'comum@test.com', role: 'user' }
+      ]);
+      
+      render(<SettingsPage />);
+      
+      // Muda para a aba Equipe
+      const tabTeam = screen.getByRole('tab', { name: /equipe/i });
+      await user.click(tabTeam);
+
+      await waitFor(() => {
+        expect(screen.getByText('Alvo Global')).toBeInTheDocument();
+      });
+
+      // O primeiro conjunto de botões refere-se ao Alvo Global
+      const removeBtns = screen.getAllByRole('button', { name: /remover membro/i });
+      const changeAccessBtns = screen.getAllByRole('button', { name: /alterar acesso/i });
+      
+      expect(removeBtns[0]).not.toBeDisabled();
+      expect(changeAccessBtns[0]).not.toBeDisabled();
     });
   });
 });

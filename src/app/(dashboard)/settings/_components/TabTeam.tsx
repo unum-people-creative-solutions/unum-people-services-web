@@ -4,8 +4,12 @@ import { useState, useEffect } from "react";
 import { Users, UserPlus, X, Shield, Mail, User, Trash2, Crown } from "lucide-react";
 import { TenantService } from "@/services/api";
 import { motion, AnimatePresence } from "framer-motion";
+import { useAuthStore } from "@/store/authStore";
 
 export default function TabTeam() {
+  const { session } = useAuthStore();
+  const isCurrentUserGlobalAdmin = session?.role === 'GlobalAdmin';
+  
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showInviteModal, setShowInviteModal] = useState(false);
@@ -120,6 +124,11 @@ export default function TabTeam() {
                 const adminCount = users.filter((user) => user.role?.toLowerCase() === 'tenantadmin' || user.role?.toLowerCase() === 'admin').length;
                 const isTenantAdmin = u.role?.toLowerCase() === 'tenantadmin' || u.role?.toLowerCase() === 'admin';
                 const isLastAdmin = isTenantAdmin && adminCount <= 1;
+                const isTargetGlobalAdmin = u.role === 'GlobalAdmin';
+                const disableActions = isLastAdmin || (isTargetGlobalAdmin && !isCurrentUserGlobalAdmin);
+                const actionTitle = disableActions 
+                  ? (isTargetGlobalAdmin && !isCurrentUserGlobalAdmin ? "Ação restrita a Global Admins" : "Único administrador não pode ser rebaixado/removido") 
+                  : "";
                 return (
                   <motion.div 
                     initial={{ opacity: 0, y: 10 }}
@@ -139,7 +148,14 @@ export default function TabTeam() {
                         )}
                       </div>
                       <div>
-                        <p className="font-black text-gray-900 text-base">{u.name}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-black text-gray-900 text-base">{u.name}</p>
+                          {isTargetGlobalAdmin && (
+                            <span className="px-2 py-0.5 rounded-md border bg-blue-100 border-blue-200 text-blue-800 text-xs font-bold">
+                              Global Admin
+                            </span>
+                          )}
+                        </div>
                         <p className="text-sm text-gray-500 font-medium">{u.email}</p>
                       </div>
                     </div>
@@ -147,21 +163,24 @@ export default function TabTeam() {
                     {/* Role & Actions */}
                     <div className="flex items-center w-full md:w-auto justify-between md:justify-end gap-6">
                       <div className={`px-3 py-1.5 rounded-lg border text-xs font-black uppercase tracking-wider flex items-center gap-1.5 ${
-                        isTenantAdmin 
+                        isTargetGlobalAdmin
+                          ? 'bg-blue-100 border-blue-200 text-blue-800'
+                          : isTenantAdmin 
                           ? 'bg-brand-blue/5 border-brand-blue/20 text-brand-blue' 
                           : 'bg-gray-100 border-gray-200 text-gray-500'
                       }`}>
-                        {isTenantAdmin ? <Crown size={12} /> : <Shield size={12} />}
-                        {isTenantAdmin ? 'Tenant Admin' : 'Usuário'}
+                        {isTargetGlobalAdmin ? <Crown size={12} /> : isTenantAdmin ? <Crown size={12} /> : <Shield size={12} />}
+                        {isTargetGlobalAdmin ? 'Global Admin' : isTenantAdmin ? 'Tenant Admin' : 'Usuário'}
                       </div>
 
                       <div className="flex items-center gap-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
                         <button 
                           onClick={() => handleToggleRole(u.email, u.role)} 
-                          disabled={actionLoading !== null || isLastAdmin}
-                          title={isLastAdmin ? "Único administrador não pode ser rebaixado" : "Alterar Acesso"}
+                          disabled={actionLoading !== null || disableActions}
+                          title={actionTitle || "Alterar Acesso"}
+                          aria-label="Alterar Acesso"
                           className={`px-3 py-2 text-xs font-bold rounded-lg transition-colors flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed ${
-                            isLastAdmin ? "text-gray-300" : "text-gray-500 hover:text-brand-blue hover:bg-brand-blue/5"
+                            disableActions ? "text-gray-300" : "text-gray-500 hover:text-brand-blue hover:bg-brand-blue/5"
                           }`}
                         >
                           {actionLoading === `role-${u.email}` ? (
@@ -172,10 +191,11 @@ export default function TabTeam() {
                         </button>
                         <button 
                           onClick={() => handleRemove(u.email)} 
-                          disabled={actionLoading !== null || isLastAdmin}
-                          title={isLastAdmin ? "Único administrador não pode ser removido" : "Remover Membro"}
+                          disabled={actionLoading !== null || disableActions}
+                          title={actionTitle || "Remover Membro"}
+                          aria-label="Remover Membro"
                           className={`p-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-                            isLastAdmin ? "text-gray-300" : "text-gray-400 hover:text-red-600 hover:bg-red-50"
+                            disableActions ? "text-gray-300" : "text-gray-400 hover:text-red-600 hover:bg-red-50"
                           }`}
                         >
                           {actionLoading === `remove-${u.email}` ? (
@@ -185,6 +205,9 @@ export default function TabTeam() {
                           )}
                         </button>
                       </div>
+                      {disableActions && isTargetGlobalAdmin && !isCurrentUserGlobalAdmin && (
+                        <span className="sr-only">Ação restrita a Global Admins</span>
+                      )}
                     </div>
                   </motion.div>
                 );
@@ -205,6 +228,7 @@ export default function TabTeam() {
           >
             <motion.div
               role="dialog"
+              aria-label="Adicionar Membro"
               initial={{ scale: 0.95, opacity: 0, y: 20 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 20 }}
