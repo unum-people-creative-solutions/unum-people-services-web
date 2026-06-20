@@ -1,14 +1,17 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+
 import { Users, UserPlus, X, Shield, Mail, User, Trash2, Crown } from "lucide-react";
 import { TenantService } from "@/services/api";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuthStore } from "@/store/authStore";
+import { useTenant } from "@/contexts/TenantContext";
 
 export default function TabTeam() {
   const { session } = useAuthStore();
   const isCurrentUserGlobalAdmin = session?.role === 'GlobalAdmin';
+  const { activeTenantId } = useTenant();
   
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -17,14 +20,11 @@ export default function TabTeam() {
   const [inviting, setInviting] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
-
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
+    if (!activeTenantId) return;
     try {
       setLoading(true);
-      const res = await TenantService.listUsers();
+      const res = await TenantService.listUsers(activeTenantId);
       setUsers(res || []);
     } catch (error) {
       console.error("Erro ao carregar usuários:", error);
@@ -32,7 +32,12 @@ export default function TabTeam() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [activeTenantId]);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [fetchUsers]);
+
 
   const handleInvite = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -205,8 +210,10 @@ export default function TabTeam() {
                           )}
                         </button>
                       </div>
-                      {disableActions && isTargetGlobalAdmin && (
-                        <span className="sr-only">Ação restrita ao painel AWS</span>
+                      {isTargetGlobalAdmin && !isCurrentUserGlobalAdmin && (
+                        <span className="text-[10px] text-red-500 font-bold uppercase tracking-wider">
+                          Ação restrita a Global Admins
+                        </span>
                       )}
                     </div>
                   </motion.div>

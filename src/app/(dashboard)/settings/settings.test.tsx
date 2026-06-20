@@ -5,6 +5,7 @@ import SettingsPage from './page';
 import { useAuthStore } from '@/store/authStore';
 import * as pushHooks from '@/hooks/usePushNotifications';
 import { TenantService } from '@/services/api';
+import { useTenant } from '@/contexts/TenantContext';
 
 // Mocks
 vi.mock('next/navigation', () => ({
@@ -35,6 +36,10 @@ vi.mock('@/hooks/usePushNotifications', () => ({
     loading: false,
     permission: 'default',
   })),
+}));
+
+vi.mock('@/contexts/TenantContext', () => ({
+  useTenant: vi.fn(),
 }));
 
 vi.mock('@/services/api', () => ({
@@ -79,6 +84,14 @@ describe('SettingsPage', () => {
       unsubscribeUser: vi.fn(),
       loading: false,
       permission: 'default',
+    });
+    (useTenant as any).mockReturnValue({
+      activeTenantId: 't-123',
+      activeTenantName: 'Unum Corp',
+      availableTenants: [{ id: 't-123', nome_negocio: 'Unum Corp' }],
+      isMultiTenant: false,
+      switchTenant: vi.fn(),
+      isLoadingTenants: false,
     });
   });
 
@@ -265,6 +278,35 @@ describe('SettingsPage', () => {
       
       expect(removeBtns[0]).not.toBeDisabled();
       expect(changeAccessBtns[0]).not.toBeDisabled();
+    });
+
+    it('T05 - RED: deve garantir que o TabTeam use activeTenantId do contexto em vez do session.tenantId diretamente', async () => {
+      const user = userEvent.setup();
+      
+      // Define activeTenantId diferente do session.tenantId do Zustand
+      (useTenant as any).mockReturnValue({
+        activeTenantId: 'tenant-active-context-B',
+        activeTenantName: 'Context Tenant B',
+        availableTenants: [
+          { id: 't-123', nome_negocio: 'Unum Corp' },
+          { id: 'tenant-active-context-B', nome_negocio: 'Context Tenant B' }
+        ],
+        isMultiTenant: true,
+        switchTenant: vi.fn(),
+        isLoadingTenants: false,
+      });
+
+      render(<SettingsPage />);
+      
+      // Vai para a aba Equipe
+      const tabTeam = screen.getByRole('tab', { name: /equipe/i });
+      await user.click(tabTeam);
+
+      // Espera e valida se listUsers foi chamado com o ID do contexto (tenant-active-context-B) e não com o id da session (t-123)
+      await waitFor(() => {
+        expect(TenantService.listUsers).toHaveBeenCalledWith('tenant-active-context-B');
+      });
+      expect(TenantService.listUsers).not.toHaveBeenCalledWith('t-123');
     });
   });
 });
