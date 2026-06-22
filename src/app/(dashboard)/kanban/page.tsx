@@ -5,7 +5,9 @@ import { useSearchParams } from "next/navigation";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import api, { LeadService, TenantService, LeadData } from "@/services/api";
 import { useAuthStore } from "@/store/authStore";
-import { Plus, X, LogOut, Settings, DollarSign, AlertCircle, Calendar, Eye, EyeOff, Users, Edit2, Mail, Phone, User, Building, Search, TrendingUp, RefreshCw, HelpCircle, Tag, ExternalLink, LayoutGrid, ArrowRightLeft, MessageCircle, Clock, Trash2, AlertTriangle } from "lucide-react";
+import { useTenant } from "@/contexts/TenantContext";
+import { Plus, X, LogOut, Settings, DollarSign, AlertCircle, Calendar, Eye, EyeOff, Users, Edit2, Mail, Phone, User, Search, TrendingUp, RefreshCw, HelpCircle, Tag, ExternalLink, LayoutGrid, ArrowRightLeft, MessageCircle, Clock, Trash2, AlertTriangle } from "lucide-react";
+
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -113,6 +115,13 @@ function KanbanContent() {
   const searchParams = useSearchParams();
   const { session, logout, setSession } = useAuthStore();
   const router = useRouter();
+  const {
+    activeTenantId,
+    activeTenantName,
+    availableTenants,
+    isMultiTenant,
+    switchTenant,
+  } = useTenant();
 
   const [boardData, setBoardData] = useState<any>({});
   const [loading, setLoading] = useState(true);
@@ -157,9 +166,6 @@ function KanbanContent() {
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
 
   // Controle de Tenant
-  const [tenants, setTenants] = useState<any[]>([]);
-  const [selectedTenantId, setSelectedTenantId] = useState<string>(searchParams.get("tenant_id") || "");
-  const [currentTenantName, setCurrentTenantName] = useState<string>("Carregando conta...");
 
   // Lógica de Filtro de Mês
   const now = new Date();
@@ -262,7 +268,7 @@ function KanbanContent() {
       XLSX.utils.book_append_sheet(wb, wsDetailed, "Vendas Detalhadas");
 
       // Download
-      const fileName = `relatorio-comercial-${currentTenantName.replace(/\s+/g, '-').toLowerCase()}-${new Date().toISOString().split('T')[0]}.xlsx`;
+      const fileName = `relatorio-comercial-${activeTenantName.replace(/\s+/g, '-').toLowerCase()}-${new Date().toISOString().split('T')[0]}.xlsx`;
       XLSX.writeFile(wb, fileName);
 
     } catch (error) {
@@ -294,29 +300,8 @@ function KanbanContent() {
   const prevMonth = useRef<number | null>(null);
   const prevYear = useRef<number | null>(null);
 
-  const loadAccountData = useCallback(async () => {
-    try {
-      // Usamos referências específicas da sessão para evitar loops ao atualizar o tenantName
-      const userRole = session?.role;
-      const sessionTenantId = session?.tenantId;
-
-      let data = userRole === "GlobalAdmin" ? await TenantService.list() : await TenantService.listMyTenants("crm");
-      const tenantsData = (data || []).sort((a: any, b: any) => Number(a.is_blocked || false) - Number(b.is_blocked || false));
-      setTenants(tenantsData);
-
-      if (!selectedTenantId && tenantsData.length > 0) {
-        setSelectedTenantId(tenantsData[0].id);
-      } else if (!selectedTenantId && sessionTenantId) {
-        setSelectedTenantId(sessionTenantId);
-      }
-    } catch (err) { 
-      console.error(err);
-      setTenants([]);
-    }
-  }, [session?.role, session?.tenantId, selectedTenantId]);
-
   const loadLeads = useCallback(async (statusListOrSilent: string[] | boolean = COLUMNS.map(c => c.id), silentParam = false) => {
-    if (!selectedTenantId) return;
+    if (!activeTenantId) return;
 
     const statusList = Array.isArray(statusListOrSilent) ? statusListOrSilent : COLUMNS.map(c => c.id);
     const silent = typeof statusListOrSilent === 'boolean' ? statusListOrSilent : silentParam;
@@ -333,7 +318,7 @@ function KanbanContent() {
           status, 
           isFiltered ? start : undefined, 
           isFiltered ? end : undefined, 
-          selectedTenantId
+          activeTenantId
         );
         results[status] = data || [];
       }));
@@ -345,13 +330,11 @@ function KanbanContent() {
     } finally { 
       if (!silent) setLoading(false); 
     }
-  }, [selectedTenantId, selectedYear, selectedMonth]);
-
-  useEffect(() => { loadAccountData(); }, [loadAccountData]);
+  }, [activeTenantId, selectedYear, selectedMonth]);
 
   useEffect(() => {
-    if (selectedTenantId) {
-      const tenantChanged = selectedTenantId !== prevTenantId.current;
+    if (activeTenantId) {
+      const tenantChanged = activeTenantId !== prevTenantId.current;
       const dateChanged = selectedMonth !== prevMonth.current || selectedYear !== prevYear.current;
 
       if (tenantChanged) {
@@ -360,27 +343,25 @@ function KanbanContent() {
         loadLeads(["GANHO", "PERDIDO"], true); // Recarrega apenas colunas filtradas
       }
 
-      prevTenantId.current = selectedTenantId;
+      prevTenantId.current = activeTenantId;
       prevMonth.current = selectedMonth;
       prevYear.current = selectedYear;
     }
 
-    if (tenants.length > 0) {
-      const found = tenants.find(t => t.id === selectedTenantId);
+    if (availableTenants.length > 0) {
+      const found = availableTenants.find(t => t.id === activeTenantId);
       if (found) {
-        setCurrentTenantName(found.nome_negocio);
-        
         // Sincroniza o nome na sessão global se houver divergência
         if (session && found.nome_negocio !== session.tenantName) {
           setSession({
             ...session,
-            tenantId: selectedTenantId,
+            tenantId: activeTenantId,
             tenantName: found.nome_negocio
           });
         }
       }
     }
-  }, [selectedMonth, selectedYear, selectedTenantId, tenants, loadLeads, session, setSession]);
+  }, [selectedMonth, selectedYear, activeTenantId, availableTenants, loadLeads, session, setSession]);
 
   const handleLogout = () => {
     logout();
@@ -389,7 +370,7 @@ function KanbanContent() {
 
   const handleCreateLead = async (data: LeadFormValues) => {
     try {
-      await LeadService.create(data, selectedTenantId);
+      await LeadService.create(data, activeTenantId);
       setIsModalOpen(false);
       createLeadForm.reset();
       loadLeads();
@@ -422,7 +403,7 @@ function KanbanContent() {
         ...data,
         sales: editingLeadSales,
         status: editingLeadStatus
-      }, selectedTenantId);
+      }, activeTenantId);
       setIsEditModalOpen(false);
       setEditingLeadId(null);
       loadLeads(true);
@@ -432,7 +413,7 @@ function KanbanContent() {
   const handleDeleteLead = async () => {
     if (!editingLeadId || deleteConfirmationText.toLowerCase() !== "excluir") return;
     try {
-      await LeadService.delete(editingLeadId, selectedTenantId);
+      await LeadService.delete(editingLeadId, activeTenantId);
       setIsDeleteConfirmModalOpen(false);
       setIsEditModalOpen(false);
       setEditingLeadId(null);
@@ -466,7 +447,7 @@ function KanbanContent() {
 
     try {
       // 2. Busca Global via API
-      const apiResults = await LeadService.searchCustomers(query, selectedTenantId);
+      const apiResults = await LeadService.searchCustomers(query, activeTenantId);
       
       // Mescla e remove duplicatas por ID
       const combined = [...localMatches, ...(apiResults || [])];
@@ -484,7 +465,7 @@ function KanbanContent() {
     if (!selectedCustomer) return;
     try {
       const rawValue = unmaskCurrency(saleValueMasked);
-      await LeadService.addSale(selectedCustomer.id, rawValue, saleDate, selectedTenantId);
+      await LeadService.addSale(selectedCustomer.id, rawValue, saleDate, activeTenantId);
       setIsNewSaleModalOpen(false);
       setSelectedCustomer(null);
       setSaleValueMasked("");
@@ -495,7 +476,7 @@ function KanbanContent() {
 
   const executeMove = async (draggableId: string, destinationId: string, valor = 0, dataVenda?: string) => {
     try {
-      await LeadService.updateStatus(draggableId, destinationId, valor, dataVenda, selectedTenantId);
+      await LeadService.updateStatus(draggableId, destinationId, valor, dataVenda, activeTenantId);
       // Sincroniza com o servidor para pegar dados atualizados
       loadLeads(true);
     } catch (err) { 
@@ -567,40 +548,12 @@ function KanbanContent() {
   return (
     <div className="h-screen flex flex-col bg-gray-50 text-gray-900 font-sans overflow-hidden">
       <Navbar 
-        selectedTenantId={selectedTenantId}
         onRefresh={() => loadLeads()}
         onNewLead={() => setIsModalOpen(true)}
         onNewSale={() => setIsNewSaleModalOpen(true)}
-        tenants={tenants}
-        onTenantChange={(id) => setSelectedTenantId(id)}
       >
         <div className="hidden md:flex items-center gap-3">
-          <div className="hidden md:flex items-center bg-primary-50 rounded-lg p-1 border border-primary-100">
-            <Building size={14} className="text-primary-400 ml-2" />
-            <select 
-              value={selectedTenantId} 
-              onChange={(e) => {
-                const selected = tenants.find(t => t.id === e.target.value);
-                if (selected?.is_blocked) {
-                  e.target.value = selectedTenantId;
-                  return;
-                }
-                setSelectedTenantId(e.target.value);
-              }} 
-              className="bg-transparent border-none text-xs font-bold text-primary-800 p-2 cursor-pointer max-w-[180px]"
-            >
-              {tenants.map(t => (
-                <option 
-                  key={t.id} 
-                  value={t.id} 
-                  disabled={t.is_blocked}
-                  className={t.is_blocked ? "text-support-grey" : ""}
-                >
-                  {t.nome_negocio}{t.is_blocked ? " · Bloqueado" : ""}
-                </option>
-              ))}
-            </select>
-          </div>
+
           <div className="flex items-center bg-gray-100 rounded-lg p-1">
             <Calendar size={14} className="text-gray-400 ml-2" />
             <select value={selectedMonth} onChange={(e) => setSelectedMonth(parseInt(e.target.value))} className="bg-transparent border-none text-xs font-bold text-gray-700 p-2 cursor-pointer">

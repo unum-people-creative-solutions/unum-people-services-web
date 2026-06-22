@@ -41,7 +41,11 @@ export default function LoginPage() {
     const decoded: any = jwtDecode(idToken);
     const groups = decoded["cognito:groups"] || [];
     const isGlobalAdmin = groups.includes("GlobalAdmin");
-    const role = isGlobalAdmin ? "GlobalAdmin" : "USER";
+    const isTenantAdmin = groups.includes("TenantAdmin");
+    
+    let role = "USER";
+    if (isGlobalAdmin) role = "GlobalAdmin";
+    else if (isTenantAdmin) role = "TenantAdmin";
 
     const sessionData = {
       email: decoded.email,
@@ -243,7 +247,7 @@ export default function LoginPage() {
               href="/forgot-password" 
               className="absolute right-0 top-0 text-xs text-support-grey font-semibold hover:text-brand-orange transition-colors z-10"
             >
-              Esqueci a senha
+              Esqueceu a senha?
             </Link>
             <Input
               label="Senha"

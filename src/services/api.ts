@@ -132,6 +132,25 @@ export const TenantService = {
   deleteAccount: async () => {
     const response = await api.delete('/me/account');
     return response.data;
+  },
+  listUsers: async (tenantId?: string) => {
+    const params = new URLSearchParams();
+    if (tenantId) params.append('tenant_id', tenantId);
+    const response = await api.get(`/tenant/users${params.toString() ? '?' + params.toString() : ''}`);
+    return response.data;
+  },
+
+  addUser: async (data: { name: string; email: string; role: string }) => {
+    const response = await api.post('/tenant/users', data);
+    return response.data;
+  },
+  updateUserRole: async (email: string, role: string) => {
+    const response = await api.patch(`/tenant/users?email=${encodeURIComponent(email)}`, { role });
+    return response.data;
+  },
+  removeUser: async (email: string) => {
+    const response = await api.delete(`/tenant/users?email=${encodeURIComponent(email)}`);
+    return response.data;
   }
 };
 
