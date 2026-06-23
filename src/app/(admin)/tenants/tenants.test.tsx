@@ -5,6 +5,7 @@ import TenantsPage from './page';
 import { TenantService } from '@/services/api';
 import { useAuthStore } from '@/store/authStore';
 import { useRouter } from 'next/navigation';
+import { useTenant } from '@/contexts/TenantContext';
 
 // Mocks
 vi.mock('next/navigation', () => ({
@@ -21,6 +22,14 @@ vi.mock('@/services/api', () => ({
     create: vi.fn(),
     createUser: vi.fn(),
   },
+}));
+
+// TenantsPage renderiza <Navbar>, que consome useTenant(). Em produção o
+// (admin)/layout.tsx fornece o TenantProvider; aqui, como o teste renderiza
+// a página isoladamente (sem passar pelo layout do Next.js), mockamos o hook
+// — mesmo padrão usado em Navbar.test.tsx e kanban.test.tsx.
+vi.mock('@/contexts/TenantContext', () => ({
+  useTenant: vi.fn(),
 }));
 
 vi.mock('@/hooks/usePushNotifications', () => ({
@@ -43,7 +52,15 @@ describe('TenantsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     (useRouter as any).mockReturnValue({ push: mockPush });
-    
+    (useTenant as any).mockReturnValue({
+      activeTenantId: '',
+      activeTenantName: '',
+      availableTenants: [],
+      isMultiTenant: false,
+      switchTenant: vi.fn(),
+      isLoadingTenants: false,
+    });
+
     // Configura o clipboard no jsdom se ele não existir
     if (typeof navigator.clipboard === 'undefined') {
       Object.defineProperty(navigator, 'clipboard', {
