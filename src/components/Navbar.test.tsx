@@ -172,5 +172,59 @@ describe('Navbar Component', () => {
       // Não deve existir botão com o padrão que representaria o switcher
       expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
     });
+
+    it('deve renderizar inquilino bloqueado como desabilitado e com a badge "Bloqueado", no dropdown desktop e no menu mobile', async () => {
+      const user = userEvent.setup();
+      const mockTenantsWithBlocked = [
+        { id: 'tenant-A', nome_negocio: 'Alpha', is_blocked: false },
+        { id: 'tenant-B', nome_negocio: 'Beta Bloqueada', is_blocked: true },
+      ];
+      (useTenant as any).mockReturnValue({
+        activeTenantId: 'tenant-A',
+        activeTenantName: 'Alpha',
+        availableTenants: mockTenantsWithBlocked,
+        isMultiTenant: true,
+        switchTenant: vi.fn(),
+        isLoadingTenants: false,
+      });
+
+      render(<Navbar />);
+
+      // Dropdown desktop (switcher de tenant)
+      await user.click(screen.getByRole('button', { name: /Alpha/i }));
+      const option = screen.getByRole('option', { name: /Beta Bloqueada/i });
+      expect(option).toBeDisabled();
+      expect(within(option).getByText('Bloqueado')).toBeInTheDocument();
+
+      // Menu mobile ("Minhas Contas")
+      await user.click(screen.getByRole('button', { name: /Menu Principal/i }));
+      const mobileButton = screen.getByRole('button', { name: /Beta Bloqueada.*Bloqueado/i });
+      expect(mobileButton).toBeDisabled();
+    });
+
+    it('não deve chamar switchTenant ao tentar clicar em um inquilino bloqueado', async () => {
+      const user = userEvent.setup();
+      const mockSwitchTenant = vi.fn();
+      const mockTenantsWithBlocked = [
+        { id: 'tenant-A', nome_negocio: 'Alpha', is_blocked: false },
+        { id: 'tenant-B', nome_negocio: 'Beta Bloqueada', is_blocked: true },
+      ];
+      (useTenant as any).mockReturnValue({
+        activeTenantId: 'tenant-A',
+        activeTenantName: 'Alpha',
+        availableTenants: mockTenantsWithBlocked,
+        isMultiTenant: true,
+        switchTenant: mockSwitchTenant,
+        isLoadingTenants: false,
+      });
+
+      render(<Navbar />);
+      await user.click(screen.getByRole('button', { name: /Alpha/i }));
+
+      const option = screen.getByRole('option', { name: /Beta Bloqueada/i });
+      await user.click(option);
+
+      expect(mockSwitchTenant).not.toHaveBeenCalled();
+    });
   });
 });

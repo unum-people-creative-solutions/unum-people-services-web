@@ -13,6 +13,7 @@ vi.mock('@/store/authStore', () => ({
 
 vi.mock('@/services/api', () => ({
   TenantService: {
+    list: vi.fn(),
     listMyTenants: vi.fn(),
   },
 }));
@@ -123,5 +124,90 @@ describe('TenantContext', () => {
     // Deve inicializar com tenant-B a partir do sessionStorage e não com o tenant-A da session
     expect(screen.getByTestId('active-id')).toHaveTextContent('tenant-B');
     expect(screen.getByTestId('active-name')).toHaveTextContent('Beta');
+  });
+
+  it('T04 — TenantContext: usuário GlobalAdmin carrega via TenantService.list() (sem filtro de serviço)', async () => {
+    (useAuthStore as any).mockReturnValue({
+      session: { tenantId: 'tenant-A', role: 'GlobalAdmin' },
+    });
+    (TenantService.list as any).mockResolvedValue(mockTenants);
+
+    render(
+      <TenantProvider>
+        <TestComponent />
+      </TenantProvider>
+    );
+
+    await waitFor(() => {
+      expect(TenantService.list).toHaveBeenCalledWith();
+    });
+    expect(TenantService.listMyTenants).not.toHaveBeenCalled();
+  });
+
+  it('T05 — TenantContext: ordena a lista mantendo inquilinos bloqueados no final', async () => {
+    const mockTenantsWithBlocked = [
+      { id: 'tenant-A', nome_negocio: 'Alpha', is_blocked: false },
+      { id: 'tenant-B', nome_negocio: 'Beta Bloqueada', is_blocked: true },
+      { id: 'tenant-C', nome_negocio: 'Gamma', is_blocked: false },
+    ];
+    (TenantService.listMyTenants as any).mockResolvedValue(mockTenantsWithBlocked);
+
+    const OrderProbe = () => {
+      const { availableTenants } = useTenant();
+      return (
+        <ul>
+          {availableTenants.map((t: any) => (
+            <li key={t.id} data-testid="tenant-order">{t.id}</li>
+          ))}
+        </ul>
+      );
+    };
+
+    render(
+      <TenantProvider>
+        <OrderProbe />
+      </TenantProvider>
+    );
+
+    await waitFor(() => {
+      const ids = screen.getAllByTestId('tenant-order').map((el) => el.textContent);
+      expect(ids).toEqual(['tenant-A', 'tenant-C', 'tenant-B']);
+    });
+  });
+
+  it('T06 — TenantContext: switchTenant não altera o tenant ativo se o destino estiver bloqueado', async () => {
+    const mockTenantsWithBlocked = [
+      { id: 'tenant-A', nome_negocio: 'Alpha', is_blocked: false },
+      { id: 'tenant-B', nome_negocio: 'Beta Bloqueada', is_blocked: true },
+    ];
+    (TenantService.listMyTenants as any).mockResolvedValue(mockTenantsWithBlocked);
+
+    const user = userEvent.setup();
+    const SwitchProbe = () => {
+      const { activeTenantId, switchTenant } = useTenant();
+      return (
+        <div>
+          <div data-testid="active-id">{activeTenantId}</div>
+          <button data-testid="switch-to-blocked" onClick={() => switchTenant('tenant-B')}>
+            Switch
+          </button>
+        </div>
+      );
+    };
+
+    render(
+      <TenantProvider>
+        <SwitchProbe />
+      </TenantProvider>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByTestId('active-id')).toHaveTextContent('tenant-A');
+    });
+
+    await user.click(screen.getByTestId('switch-to-blocked'));
+
+    // Tentativa de troca para inquilino bloqueado é ignorada
+    expect(screen.getByTestId('active-id')).toHaveTextContent('tenant-A');
   });
 });
