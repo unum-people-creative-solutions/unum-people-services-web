@@ -7,10 +7,12 @@ import { User, Mail, Shield, Building, Trash2, Save, ExternalLink, Bell, AlertTr
 import { motion, AnimatePresence } from "framer-motion";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { TenantService } from "@/services/api";
+import { useTenant } from "@/contexts/TenantContext";
 
 export default function TabMyAccount() {
   const { session } = useAuthStore();
   const { isSubscribed, subscribeUser, unsubscribeUser, loading: pushLoading, permission } = usePushNotifications();
+  const { activeTenantName } = useTenant();
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteConfirmationText, setDeleteConfirmationText] = useState("");
   const [isExporting, setIsExporting] = useState(false);
@@ -33,7 +35,7 @@ export default function TabMyAccount() {
         },
         tenant: {
           id: session?.tenantId,
-          name: session?.tenantName || "Unum People Central",
+          name: activeTenantName || "Unum People Central",
         },
         notice: "Este arquivo contém seus dados pessoais e de vínculo corporativo armazenados em nossa plataforma."
       };
@@ -134,7 +136,7 @@ export default function TabMyAccount() {
               <div>
                 <p className="text-[10px] font-black text-primary-400 uppercase">Nome do Negócio / Empresa</p>
                 <p className="font-black text-primary-900 text-lg leading-tight">
-                  {session?.tenantName || "Não Identificado"}
+                  {activeTenantName || "Não Identificado"}
                 </p>
               </div>
               <Building size={32} className="text-support-grey/50" />
