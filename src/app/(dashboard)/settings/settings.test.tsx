@@ -250,7 +250,7 @@ describe('SettingsPage', () => {
       expect(screen.getByText(/ação restrita a global admins/i)).toBeInTheDocument();
     });
 
-    it('T05 - RED: deve habilitar os botões de ação para GlobalAdmin quando o chamador também for GlobalAdmin', async () => {
+    it('T05 - deve manter os botões de ação bloqueados para GlobalAdmin mesmo quando o chamador também for GlobalAdmin (restrito ao console AWS)', async () => {
       const user = userEvent.setup();
       // Chamador: GlobalAdmin
       (useAuthStore as any).mockReturnValue({
@@ -261,9 +261,9 @@ describe('SettingsPage', () => {
         { id: '1', name: 'Alvo Global', email: 'global@test.com', role: 'GlobalAdmin' },
         { id: '2', name: 'Comum', email: 'comum@test.com', role: 'user' }
       ]);
-      
+
       render(<SettingsPage />);
-      
+
       // Muda para a aba Equipe
       const tabTeam = screen.getByRole('tab', { name: /equipe/i });
       await user.click(tabTeam);
@@ -272,15 +272,102 @@ describe('SettingsPage', () => {
         expect(screen.getByText('Alvo Global')).toBeInTheDocument();
       });
 
-      // O primeiro conjunto de botões refere-se ao Alvo Global
+      // O primeiro conjunto de botões refere-se ao Alvo Global: bloqueado mesmo para chamador GlobalAdmin
       const removeBtns = screen.getAllByRole('button', { name: /remover membro/i });
       const changeAccessBtns = screen.getAllByRole('button', { name: /alterar acesso/i });
-      
-      expect(removeBtns[0]).not.toBeDisabled();
-      expect(changeAccessBtns[0]).not.toBeDisabled();
+
+      expect(removeBtns[0]).toBeDisabled();
+      expect(changeAccessBtns[0]).toBeDisabled();
+
+      // O segundo conjunto refere-se ao usuário Comum: não é afetado pela regra de GlobalAdmin
+      expect(removeBtns[1]).not.toBeDisabled();
+      expect(changeAccessBtns[1]).not.toBeDisabled();
     });
 
-    it('T05 - RED: deve garantir que o TabTeam use activeTenantId do contexto em vez do session.tenantId diretamente', async () => {
+    it('T06 - deve habilitar os botões de ação para um usuário comum quando o chamador é TenantAdmin', async () => {
+      const user = userEvent.setup();
+      (useAuthStore as any).mockReturnValue({
+        session: { ...mockSession, role: 'TenantAdmin' }
+      });
+      (TenantService.listUsers as any).mockResolvedValue([
+        { id: '1', name: 'Usuário Comum', email: 'comum@test.com', role: 'user' }
+      ]);
+
+      render(<SettingsPage />);
+
+      const tabTeam = screen.getByRole('tab', { name: /equipe/i });
+      await user.click(tabTeam);
+
+      await waitFor(() => {
+        expect(screen.getByText('Usuário Comum')).toBeInTheDocument();
+      });
+
+      expect(screen.getByRole('button', { name: /remover membro/i })).not.toBeDisabled();
+      expect(screen.getByRole('button', { name: /alterar acesso/i })).not.toBeDisabled();
+    });
+
+    it('T07 - deve habilitar os botões de ação para um TenantAdmin quando NÃO é o único TenantAdmin do tenant', async () => {
+      const user = userEvent.setup();
+      (useAuthStore as any).mockReturnValue({
+        session: { ...mockSession, role: 'TenantAdmin' }
+      });
+      // Dois TenantAdmins no tenant: nenhum deles é o "último"
+      (TenantService.listUsers as any).mockResolvedValue([
+        { id: '1', name: 'Admin Um', email: 'jared@test.com', role: 'TenantAdmin' },
+        { id: '2', name: 'Admin Dois', email: 'outro-admin@test.com', role: 'TenantAdmin' }
+      ]);
+
+      render(<SettingsPage />);
+
+      const tabTeam = screen.getByRole('tab', { name: /equipe/i });
+      await user.click(tabTeam);
+
+      await waitFor(() => {
+        expect(screen.getByText('Admin Dois')).toBeInTheDocument();
+      });
+
+      const removeBtns = screen.getAllByRole('button', { name: /remover membro/i });
+      const changeAccessBtns = screen.getAllByRole('button', { name: /alterar acesso/i });
+
+      // Linha do "Admin Dois" (índice 1): pode ser alterado/removido pelo outro TenantAdmin
+      expect(removeBtns[1]).not.toBeDisabled();
+      expect(changeAccessBtns[1]).not.toBeDisabled();
+    });
+
+    it('T08 - deve bloquear os botões de ação para o único TenantAdmin do tenant', async () => {
+      const user = userEvent.setup();
+      (useAuthStore as any).mockReturnValue({
+        session: { ...mockSession, role: 'TenantAdmin' }
+      });
+      // Único TenantAdmin do tenant + um usuário comum
+      (TenantService.listUsers as any).mockResolvedValue([
+        { id: '1', name: 'Único Admin', email: 'jared@test.com', role: 'TenantAdmin' },
+        { id: '2', name: 'Usuário Comum', email: 'comum@test.com', role: 'user' }
+      ]);
+
+      render(<SettingsPage />);
+
+      const tabTeam = screen.getByRole('tab', { name: /equipe/i });
+      await user.click(tabTeam);
+
+      await waitFor(() => {
+        expect(screen.getByText('Único Admin')).toBeInTheDocument();
+      });
+
+      const removeBtns = screen.getAllByRole('button', { name: /remover membro/i });
+      const changeAccessBtns = screen.getAllByRole('button', { name: /alterar acesso/i });
+
+      // Tenant precisa manter ao menos um TenantAdmin: linha bloqueada
+      expect(removeBtns[0]).toBeDisabled();
+      expect(changeAccessBtns[0]).toBeDisabled();
+      expect(removeBtns[0]).toHaveAttribute('title', 'Único administrador não pode ser rebaixado/removido');
+
+      // Usuário comum continua liberado
+      expect(removeBtns[1]).not.toBeDisabled();
+      expect(changeAccessBtns[1]).not.toBeDisabled();
+    });
+
+    it('T09 - deve garantir que o TabTeam use activeTenantId do contexto em vez do session.tenantId diretamente', async () => {
       const user = userEvent.setup();
       
       // Define activeTenantId diferente do session.tenantId do Zustand
