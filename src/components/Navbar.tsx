@@ -12,37 +12,34 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getGoogleAdsAuthUrl } from "@/lib/google-ads";
-import { useTenant } from "@/contexts/TenantContext";
 import pkg from "../../package.json";
 
 interface NavbarProps {
+  selectedTenantId?: string;
   onRefresh?: () => void;
   onNewLead?: () => void;
   newLeadLabel?: string;
   onNewSale?: () => void;
   newSaleLabel?: string;
+  tenants?: any[];
+  onTenantChange?: (id: string) => void;
   children?: React.ReactNode; 
 }
 
 export default function Navbar({ 
+  selectedTenantId, 
   onRefresh, 
   onNewLead, 
   newLeadLabel = "Novo Lead Manual",
   onNewSale,
   newSaleLabel = "Registrar Nova Venda",
+  tenants,
+  onTenantChange,
   children 
 }: NavbarProps) {
   const { session, logout } = useAuthStore();
   const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [isTenantDropdownOpen, setIsTenantDropdownOpen] = useState(false);
-  const {
-    activeTenantId,
-    activeTenantName,
-    availableTenants,
-    isMultiTenant,
-    switchTenant,
-  } = useTenant();
 
   // Bloquear scroll quando menu mobile estiver aberto
   useEffect(() => {
@@ -61,7 +58,7 @@ export default function Navbar({
     router.push("/login");
   };
 
-  const adsUrl = getGoogleAdsAuthUrl(session?.role === "GlobalAdmin" ? "MASTER" : (activeTenantId || ""));
+  const adsUrl = getGoogleAdsAuthUrl(session?.role === "GlobalAdmin" ? "MASTER" : (selectedTenantId || ""));
 
   return (
     <nav className="bg-white border-b shadow-sm z-50 sticky top-0">
@@ -79,68 +76,6 @@ export default function Navbar({
                 className="object-contain"
               />
             </Link>
-            
-            {/* Switcher de Tenant no Desktop */}
-            {isMultiTenant && (
-              <div className="hidden md:relative md:block">
-                <button
-                  onClick={() => setIsTenantDropdownOpen(!isTenantDropdownOpen)}
-                  className="flex items-center gap-2 bg-gray-50 hover:bg-gray-100 text-gray-800 px-3.5 py-2 rounded-xl text-xs font-black transition-all border border-gray-200/60 shadow-sm uppercase tracking-wider"
-                  aria-label={activeTenantName}
-                  role="button"
-                >
-                  <Building size={14} className="text-gray-500" />
-                  <span>{activeTenantName}</span>
-                  <ChevronDown size={12} className={`transition-transform duration-200 ${isTenantDropdownOpen ? 'rotate-180' : ''}`} />
-                </button>
-                
-                <AnimatePresence>
-                  {isTenantDropdownOpen && (
-                    <>
-                      <div 
-                        className="fixed inset-0 z-30" 
-                        onClick={() => setIsTenantDropdownOpen(false)}
-                      />
-                      <motion.div
-                        role="listbox"
-                        className="absolute left-0 mt-2 w-64 bg-white border border-gray-100 rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.08)] z-40 py-2 overflow-hidden"
-                        initial={{ opacity: 0, scale: 0.95, y: -5 }}
-                        animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.95, y: -5 }}
-                        transition={{ duration: 0.1 }}
-                      >
-                        {availableTenants.map((t) => (
-                          <button
-                            key={t.id}
-                            role="option"
-                            aria-selected={t.id === activeTenantId}
-                            disabled={t.is_blocked}
-                            onClick={() => {
-                              switchTenant(t.id);
-                              setIsTenantDropdownOpen(false);
-                            }}
-                            className={`w-full flex items-center justify-between px-4 py-3 text-xs text-left transition-colors font-bold uppercase tracking-wider ${
-                              t.is_blocked
-                                ? "opacity-40 cursor-not-allowed text-gray-400 bg-gray-50"
-                                : t.id === activeTenantId
-                                  ? "bg-primary-50 text-primary-700"
-                                  : "text-gray-700 hover:bg-gray-50"
-                            }`}
-                          >
-                            <span>{t.nome_negocio}</span>
-                            {t.is_blocked && (
-                              <span className="bg-red-50 text-red-600 border border-red-200 px-2 py-0.5 rounded text-[9px] font-black uppercase">
-                                Bloqueado
-                              </span>
-                            )}
-                          </button>
-                        ))}
-                      </motion.div>
-                    </>
-                  )}
-                </AnimatePresence>
-              </div>
-            )}
             
             {/* Espaço para Filtros/Seletores */}
             <div className="flex items-center gap-3 overflow-x-auto no-scrollbar py-1">
@@ -251,13 +186,13 @@ export default function Navbar({
                           </div>
 
                           {/* Seção: Trocar Conta (Tenant) - Mobile Only */}
-                          {isMultiTenant && (
+                          {tenants && tenants.length > 0 && (
                             <div className="space-y-4">
                               <div className="text-[12px] font-black text-gray-400 uppercase tracking-[0.2em] flex items-center gap-2">
                                 <Building size={14} /> Minhas Contas
                               </div>
                               <div className="grid gap-2 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
-                                {availableTenants.map((tenant) => {
+                                {tenants.map((tenant) => {
                                    const isBlocked = tenant.is_blocked;
                                    return (
                                      <button
@@ -267,24 +202,24 @@ export default function Navbar({
                                        aria-label={`${tenant.nome_negocio}${isBlocked ? " · Bloqueado" : ""}`}
                                        onClick={() => {
                                          if (isBlocked) return;
-                                         switchTenant(tenant.id);
+                                         if (onTenantChange) onTenantChange(tenant.id);
                                          setIsMenuOpen(false);
                                        }}
-                                       className={`flex items-center justify-between px-6 py-4 rounded-xl transition-all uppercase tracking-wider text-[11px] font-black ${
+                                       className={`flex items-center justify-between px-6 py-4 rounded-xl transition-all ${
                                          isBlocked
                                            ? "opacity-40 cursor-not-allowed text-gray-400 bg-gray-50"
-                                           : activeTenantId === tenant.id 
+                                           : selectedTenantId === tenant.id 
                                              ? "bg-primary-600 text-white shadow-lg" 
                                              : "bg-gray-50 text-gray-700 hover:bg-gray-100"
                                        }`}
                                      >
-                                       <span className="truncate">{tenant.nome_negocio}</span>
+                                       <span className="font-bold truncate">{tenant.nome_negocio}</span>
                                        {isBlocked ? (
-                                         <span className="bg-red-50 text-red-600 border border-red-200 px-2 py-0.5 rounded text-[9px] font-black uppercase ml-2 flex-shrink-0">
+                                         <span className="bg-red-50 text-red-600 border border-red-200 px-2 py-0.5 rounded text-[10px] font-bold uppercase ml-2 flex-shrink-0">
                                            Bloqueado
                                          </span>
                                        ) : (
-                                         activeTenantId === tenant.id && <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
+                                         selectedTenantId === tenant.id && <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
                                        )}
                                      </button>
                                    );

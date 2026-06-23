@@ -4,7 +4,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import KanbanPage from './page';
 import { LeadService, TenantService } from '@/services/api';
 import { useAuthStore } from '@/store/authStore';
-import { useTenant } from '@/contexts/TenantContext';
 
 // Mocks
 vi.mock('next/navigation', () => ({
@@ -31,10 +30,6 @@ vi.mock('@/services/api', () => ({
 
 vi.mock('@/store/authStore', () => ({
   useAuthStore: vi.fn(),
-}));
-
-vi.mock('@/contexts/TenantContext', () => ({
-  useTenant: vi.fn(),
 }));
 
 vi.mock('@hello-pangea/dnd', () => ({
@@ -66,14 +61,6 @@ describe('KanbanPage', () => {
       session: { email: 'user@test.com', name: 'User', tenantId: 'tenant-1', role: 'USER' },
       logout: vi.fn(),
       setSession: vi.fn(),
-    });
-    (useTenant as any).mockReturnValue({
-      activeTenantId: 'tenant-1',
-      activeTenantName: 'Unum Teste',
-      availableTenants: mockTenants,
-      isMultiTenant: false,
-      switchTenant: vi.fn(),
-      isLoadingTenants: false,
     });
     (TenantService.listMyTenants as any).mockResolvedValue(mockTenants);
     (LeadService.list as any).mockImplementation((status: string) => {
@@ -179,14 +166,6 @@ describe('KanbanPage', () => {
         setSession: vi.fn(),
       });
       (TenantService.listMyTenants as any).mockResolvedValue(mockTenantsWithBlocked);
-      (useTenant as any).mockReturnValue({
-        activeTenantId: 'tenant-1',
-        activeTenantName: 'Active Tenant',
-        availableTenants: mockTenantsWithBlocked,
-        isMultiTenant: true,
-        switchTenant: vi.fn(),
-        isLoadingTenants: false,
-      });
     });
 
     it('T-05.1: deve renderizar inquilino bloqueado como desabilitado e marcado como bloqueado no desktop select e no menu mobile', async () => {
@@ -241,78 +220,6 @@ describe('KanbanPage', () => {
 
       // Nao deve ter mudado o valor do select (deve continuar tenant-1)
       expect(select).toHaveValue('tenant-1');
-    });
-  });
-
-  describe('Recarregamento de Leads ao Trocar Tenant (T06)', () => {
-    it('T06 — Kanban: recarrega leads ao trocar tenant', async () => {
-      const mockSwitchTenant = vi.fn();
-      
-      // Inicialmente com tenant-1
-      (useTenant as any).mockReturnValue({
-        activeTenantId: 'tenant-1',
-        activeTenantName: 'Tenant 1',
-        availableTenants: [
-          { id: 'tenant-1', nome_negocio: 'Tenant 1' },
-          { id: 'tenant-2', nome_negocio: 'Tenant 2' },
-        ],
-        isMultiTenant: true,
-        switchTenant: mockSwitchTenant,
-        isLoadingTenants: false,
-      });
-
-      const { rerender } = render(<KanbanPage />);
-
-      // Aguarda carregar inicialmente os leads do tenant-1
-      await waitFor(() => {
-        expect(LeadService.list).toHaveBeenCalledWith(
-          expect.any(String),
-          undefined,
-          undefined,
-          'tenant-1'
-        );
-      });
-
-      // Limpa as chamadas de mock para monitorar apenas o recarregamento
-      vi.clearAllMocks();
-
-      // Configura os leads retornados para o tenant-2
-      const mockNewLeads = [
-        { id: 'lead-3', nome: 'Renato Silva', status: 'NOVO', sales: [] }
-      ];
-      (LeadService.list as any).mockImplementation((status: string) => {
-        return Promise.resolve(mockNewLeads.filter(l => l.status === status));
-      });
-
-      // Simula a mudança no activeTenantId no contexto
-      (useTenant as any).mockReturnValue({
-        activeTenantId: 'tenant-2',
-        activeTenantName: 'Tenant 2',
-        availableTenants: [
-          { id: 'tenant-1', nome_negocio: 'Tenant 1' },
-          { id: 'tenant-2', nome_negocio: 'Tenant 2' },
-        ],
-        isMultiTenant: true,
-        switchTenant: mockSwitchTenant,
-        isLoadingTenants: false,
-      });
-
-      // Re-renderiza o componente com o novo valor de contexto
-      rerender(<KanbanPage />);
-
-      // Deve disparar a busca de leads com o novo tenant-2
-      await waitFor(() => {
-        expect(LeadService.list).toHaveBeenCalledWith(
-          expect.any(String),
-          undefined,
-          undefined,
-          'tenant-2'
-        );
-      });
-
-      // Verifica se o lead do tenant-1 (João Silva) foi substituído pelo do tenant-2 (Renato Silva)
-      expect(screen.getByText('Renato Silva')).toBeInTheDocument();
-      expect(screen.queryByText('João Silva')).not.toBeInTheDocument();
     });
   });
 });
