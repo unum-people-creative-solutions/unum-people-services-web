@@ -5,6 +5,9 @@ import { useRouter, usePathname } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
 import { jwtDecode } from "jwt-decode";
 import TermsModal from "./TermsModal";
+import ServiceAgreementGate from "./ServiceAgreementGate";
+import ServiceAgreementWaiting from "./ServiceAgreementWaiting";
+import { ServiceAgreementService, ServiceAgreementStatusResponse } from "@/services/api";
 import { AnimatePresence } from "framer-motion";
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
@@ -13,6 +16,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [isHydrated, setIsHydrated] = useState(false);
   const [mustAcceptTerms, setMustAcceptTerms] = useState(false);
+  const [agreementStatus, setAgreementStatus] = useState<ServiceAgreementStatusResponse | null>(null);
 
   useEffect(() => {
     const unsub = useAuthStore.persist.onFinishHydration(() => {
@@ -69,9 +73,17 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
             setMustAcceptTerms(false);
           }
         }
+
+        // 5. Termo de Contratação de Serviço — independente do consentimento
+        // LGPD acima (gate separado, ver HANDOFF-fase5.md). O backend decide
+        // can_accept a partir do papel real do JWT; o frontend nunca infere.
+        ServiceAgreementService.getMyStatus()
+          .then(setAgreementStatus)
+          .catch(() => setAgreementStatus(null));
       } else {
         // Se estiver em rota pública, não forçar modal
         setMustAcceptTerms(false);
+        setAgreementStatus(null);
       }
     }
   }, [isHydrated, isAuthenticated, session, pathname, router, logout]);
@@ -89,12 +101,22 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
       {children}
       <AnimatePresence>
         {mustAcceptTerms && session?.email && (
-          <TermsModal 
-            email={session.email} 
-            onAccept={() => setMustAcceptTerms(false)} 
+          <TermsModal
+            email={session.email}
+            onAccept={() => setMustAcceptTerms(false)}
           />
         )}
       </AnimatePresence>
+      {agreementStatus?.status === "pendente" && (
+        agreementStatus.can_accept ? (
+          <ServiceAgreementGate
+            status={agreementStatus}
+            onAccepted={() => setAgreementStatus((prev) => (prev ? { ...prev, status: "aceito" } : prev))}
+          />
+        ) : (
+          <ServiceAgreementWaiting />
+        )
+      )}
     </>
   );
 }
