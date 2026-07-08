@@ -350,6 +350,34 @@ describe('AuthGuard', () => {
       expect(ServiceAgreementService.getMyStatus).not.toHaveBeenCalled();
     });
 
+    // SUG-8 (/local-review): a busca do status do termo não pode reexecutar a
+    // cada troca de rota dentro da área autenticada — isso batia a API do
+    // backend a cada navegação sem nenhum motivo (o status não muda entre
+    // rotas privadas).
+    it('não refaz a busca do status do termo ao navegar entre rotas privadas', async () => {
+      const { rerender } = render(
+        <AuthGuard>
+          <div>Content</div>
+        </AuthGuard>
+      );
+
+      await waitFor(() => {
+        expect(ServiceAgreementService.getMyStatus).toHaveBeenCalledTimes(1);
+      });
+
+      (usePathname as any).mockReturnValue('/kanban/outro-board');
+      rerender(
+        <AuthGuard>
+          <div>Content</div>
+        </AuthGuard>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Content')).toBeInTheDocument();
+      });
+      expect(ServiceAgreementService.getMyStatus).toHaveBeenCalledTimes(1);
+    });
+
     // Achado do /local-review: falha ao buscar o status inicial resultava em
     // "fail-open" (usuário passava direto, sem nenhum gate) — contraria D6
     // ("enforcement real"). Deve ser fail-closed: erro vira tela de espera.
