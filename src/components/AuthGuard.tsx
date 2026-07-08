@@ -77,9 +77,18 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
         // 5. Termo de Contratação de Serviço — independente do consentimento
         // LGPD acima (gate separado, ver HANDOFF-fase5.md). O backend decide
         // can_accept a partir do papel real do JWT; o frontend nunca infere.
+        // Fail-closed: se a busca falhar, tratamos como pendente/sem permissão
+        // de aceite (tela de espera) em vez de liberar o acesso — nunca
+        // assumir "sem gate" só porque não conseguimos confirmar o status.
         ServiceAgreementService.getMyStatus()
           .then(setAgreementStatus)
-          .catch(() => setAgreementStatus(null));
+          .catch(() => setAgreementStatus({
+            status: 'pendente',
+            term_name: '',
+            required_version: 0,
+            document_url: '',
+            can_accept: false,
+          }));
       } else {
         // Se estiver em rota pública, não forçar modal
         setMustAcceptTerms(false);
