@@ -97,6 +97,22 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     }
   }, [isHydrated, isAuthenticated, session, pathname, router, logout]);
 
+  // SUG-3 (/local-review): quem vê ServiceAgreementWaiting não é quem aceita
+  // (é o TenantAdmin, em outra sessão/dispositivo) — sem polling, a tela só
+  // desbloqueava com um F5 manual depois do aceite acontecer em outro lugar.
+  const isWaitingForAgreement = agreementStatus?.status === 'pendente' && agreementStatus.can_accept === false;
+  useEffect(() => {
+    if (!isWaitingForAgreement) return;
+
+    const intervalId = setInterval(() => {
+      ServiceAgreementService.getMyStatus()
+        .then(setAgreementStatus)
+        .catch(() => {});
+    }, 15000);
+
+    return () => clearInterval(intervalId);
+  }, [isWaitingForAgreement]);
+
   if (!isHydrated) {
     return (
       <div className="h-screen flex items-center justify-center bg-gray-50">
