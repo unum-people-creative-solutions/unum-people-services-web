@@ -7,8 +7,8 @@ import api, { LeadService, TenantService, LeadData } from "@/services/api";
 import { useAuthStore } from "@/store/authStore";
 import { useTenant } from "@/contexts/TenantContext";
 import { Plus, X, LogOut, Settings, DollarSign, AlertCircle, Calendar, Eye, EyeOff, Users, Edit2, Mail, Phone, User, Search, TrendingUp, RefreshCw, HelpCircle, Tag, ExternalLink, LayoutGrid, ArrowRightLeft, MessageCircle, Clock, Trash2, AlertTriangle } from "lucide-react";
+import { logoutFromHostedUI } from "@/lib/pkce";
 
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import Navbar from "@/components/Navbar";
@@ -114,7 +114,6 @@ const getInactivityStatus = (updatedAt: any, columnId: string) => {
 function KanbanContent() {
   const searchParams = useSearchParams();
   const { session, logout, setSession } = useAuthStore();
-  const router = useRouter();
   const {
     activeTenantId,
     activeTenantName,
@@ -365,7 +364,7 @@ function KanbanContent() {
 
   const handleLogout = () => {
     logout();
-    router.push("/login");
+    logoutFromHostedUI();
   };
 
   const handleCreateLead = async (data: LeadFormValues) => {

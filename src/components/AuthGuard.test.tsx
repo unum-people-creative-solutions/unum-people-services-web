@@ -2,13 +2,13 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import AuthGuard from './AuthGuard';
 import { useAuthStore } from '@/store/authStore';
-import { useRouter, usePathname } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { jwtDecode } from 'jwt-decode';
 import { ServiceAgreementService } from '@/services/api';
+import { redirectToHostedUI } from '@/lib/pkce';
 
 // Mocks
 vi.mock('next/navigation', () => ({
-  useRouter: vi.fn(),
   usePathname: vi.fn(),
 }));
 
@@ -51,16 +51,21 @@ vi.mock('./ServiceAgreementWaiting', () => ({
   default: () => <div data-testid="service-agreement-waiting" />,
 }));
 
+// TASK-FE-CRM-001: redirectToHostedUI é testada de ponta a ponta (URL real,
+// via crypto real) em src/lib/pkce.test.ts — aqui só verificamos que o
+// AuthGuard a aciona com o `pathname` certo nos 3 cenários sem sessão válida.
+vi.mock('@/lib/pkce', () => ({
+  redirectToHostedUI: vi.fn(async () => {}),
+}));
+
 describe('AuthGuard', () => {
-  const mockPush = vi.fn();
   const mockLogout = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
     window.localStorage.clear();
-    (useRouter as any).mockReturnValue({ push: mockPush });
     (usePathname as any).mockReturnValue('/dashboard');
-    
+
     // Mock default persist behavior (already hydrated)
     (useAuthStore.persist.hasHydrated as any).mockReturnValue(true);
     (useAuthStore.persist.onFinishHydration as any).mockReturnValue(() => {});
@@ -111,7 +116,7 @@ describe('AuthGuard', () => {
   });
 
   it('deve renderizar children em rotas públicas sem autenticação', async () => {
-    (usePathname as any).mockReturnValue('/login');
+    (usePathname as any).mockReturnValue('/privacy');
     (useAuthStore as any).mockReturnValue({
       isAuthenticated: false,
       session: null,
@@ -129,73 +134,57 @@ describe('AuthGuard', () => {
     });
   });
 
-  it('deve redirecionar usuário autenticado de /login para /kanban', async () => {
-    (usePathname as any).mockReturnValue('/login');
-    (useAuthStore as any).mockReturnValue({
-      isAuthenticated: true,
-      session: { token: 'valid-token', email: 'test@example.com' },
-      logout: mockLogout,
+  describe('TASK-FE-CRM-001 — Redirect para o Hosted UI (Cognito)', () => {
+    it('aciona redirectToHostedUI com o pathname atual se não autenticado em rota privada — nunca mais /login interno', async () => {
+      (usePathname as any).mockReturnValue('/dashboard');
+      (useAuthStore as any).mockReturnValue({
+        isAuthenticated: false,
+        session: null,
+        logout: mockLogout,
+      });
+
+      render(
+        <AuthGuard>
+          <div>Content</div>
+        </AuthGuard>
+      );
+
+      await waitFor(() => {
+        expect(redirectToHostedUI).toHaveBeenCalledWith('/dashboard');
+      });
     });
 
-    render(
-      <AuthGuard>
-        <div>Content</div>
-      </AuthGuard>
-    );
+    it('aciona redirectToHostedUI se o token estiver expirado', async () => {
+      const expiredTime = Date.now() / 1000 - 1000;
+      (jwtDecode as any).mockReturnValue({ exp: expiredTime });
 
-    await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith('/kanban');
-    });
-  });
+      render(
+        <AuthGuard>
+          <div>Content</div>
+        </AuthGuard>
+      );
 
-  it('deve redirecionar para /login se não autenticado em rota privada', async () => {
-    (useAuthStore as any).mockReturnValue({
-      isAuthenticated: false,
-      session: null,
-      logout: mockLogout,
+      await waitFor(() => {
+        expect(mockLogout).toHaveBeenCalled();
+        expect(redirectToHostedUI).toHaveBeenCalledWith('/dashboard');
+      });
     });
 
-    render(
-      <AuthGuard>
-        <div>Content</div>
-      </AuthGuard>
-    );
+    it('aciona redirectToHostedUI se a decodificação do token falhar', async () => {
+      (jwtDecode as any).mockImplementation(() => {
+        throw new Error('Invalid token');
+      });
 
-    await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith('/login');
-    });
-  });
+      render(
+        <AuthGuard>
+          <div>Content</div>
+        </AuthGuard>
+      );
 
-  it('deve redirecionar para /login se o token estiver expirado', async () => {
-    const expiredTime = Date.now() / 1000 - 1000;
-    (jwtDecode as any).mockReturnValue({ exp: expiredTime });
-
-    render(
-      <AuthGuard>
-        <div>Content</div>
-      </AuthGuard>
-    );
-
-    await waitFor(() => {
-      expect(mockLogout).toHaveBeenCalled();
-      expect(mockPush).toHaveBeenCalledWith('/login');
-    });
-  });
-
-  it('deve redirecionar para /login se a decodificação do token falhar', async () => {
-    (jwtDecode as any).mockImplementation(() => {
-      throw new Error('Invalid token');
-    });
-
-    render(
-      <AuthGuard>
-        <div>Content</div>
-      </AuthGuard>
-    );
-
-    await waitFor(() => {
-      expect(mockLogout).toHaveBeenCalled();
-      expect(mockPush).toHaveBeenCalledWith('/login');
+      await waitFor(() => {
+        expect(mockLogout).toHaveBeenCalled();
+        expect(redirectToHostedUI).toHaveBeenCalledWith('/dashboard');
+      });
     });
   });
 
@@ -331,7 +320,7 @@ describe('AuthGuard', () => {
     });
 
     it('não busca o status do termo em rotas públicas', async () => {
-      (usePathname as any).mockReturnValue('/login');
+      (usePathname as any).mockReturnValue('/privacy');
       (useAuthStore as any).mockReturnValue({
         isAuthenticated: false,
         session: null,

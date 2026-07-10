@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { TenantService } from "@/services/api";
 import { useTenant } from "@/contexts/TenantContext";
+import { logoutFromHostedUI } from "@/lib/pkce";
 
 export default function TabMyAccount() {
   const { session } = useAuthStore();
@@ -233,10 +234,10 @@ export default function TabMyAccount() {
                       const res = await TenantService.deleteAccount();
                       alert(res.message || "Sua conta foi desativada e a solicitação de exclusão foi registrada.");
                       useAuthStore.getState().logout();
-                      window.location.href = "/login";
+                      logoutFromHostedUI();
                     } catch (error) {
-                      console.error(error);
-                      alert("Ocorreu um erro");
+                      console.error("[TabMyAccount] deleteAccount falhou:", error);
+                      alert("Não foi possível desativar sua conta. Tente novamente ou entre em contato com o suporte.");
                     } finally {
                       setIsDeleting(false);
                     }

@@ -9,6 +9,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { onboardingSchema } from "@/lib/validations";
 import { Input } from "@/components/ui/Input";
+import { redirectToHostedUI } from "@/lib/pkce";
 import { z } from "zod";
 
 type OnboardingFormValues = z.infer<typeof onboardingSchema>;
@@ -44,9 +45,9 @@ export default function OnboardingPage() {
     if (session) {
       checkTenants();
     } else {
-      router.push("/login");
+      void redirectToHostedUI("/");
     }
-  }, [session, router]);
+  }, [session]);
 
   const onSubmit = async (data: OnboardingFormValues) => {
     setLoading(true);

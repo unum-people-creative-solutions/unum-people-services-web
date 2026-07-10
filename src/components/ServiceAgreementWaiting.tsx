@@ -1,15 +1,14 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
+import { logoutFromHostedUI } from "@/lib/pkce";
 
 export default function ServiceAgreementWaiting() {
-  const router = useRouter();
   const { logout } = useAuthStore();
 
   const handleBackToLogin = () => {
     logout();
-    router.push("/login");
+    logoutFromHostedUI();
   };
 
   return (
