@@ -1,24 +1,22 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { CheckCircle, BarChart3, Users, Zap, ShieldCheck, FileText, Smartphone } from "lucide-react";
+import { redirectToHostedUI } from "@/lib/pkce";
 
 export default function LandingPage() {
-  const router = useRouter();
-
   useEffect(() => {
     // Detecta se o app está rodando em modo standalone (PWA/TWA)
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches 
-      || (window.navigator as any).standalone 
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches
+      || (window.navigator as any).standalone
       || document.referrer.includes('android-app://');
 
     if (isStandalone) {
-      router.replace("/login");
+      void redirectToHostedUI("/");
     }
-  }, [router]);
+  }, []);
 
   return (
     <div className="min-h-screen bg-white text-gray-900 font-sans">
@@ -29,12 +27,13 @@ export default function LandingPage() {
             <Image src="/images/logo_simbolo.webp" alt="Unum People Símbolo" width={40} height={40} className="h-8 w-auto" />
             <Image src="/images/logo_texto.webp" alt="Unum People" width={160} height={32} className="h-8 w-auto" />
           </div>
-          <Link 
-            href="/login" 
+          <button
+            type="button"
+            onClick={() => redirectToHostedUI("/")}
             className="bg-brand-orange text-white px-6 py-2.5 rounded-full font-bold text-sm hover:brightness-110 transition-all shadow-md"
           >
             Acessar Painel
-          </Link>
+          </button>
         </div>
       </nav>
 
@@ -165,7 +164,13 @@ export default function LandingPage() {
               </p>
             </div>
             <div className="flex flex-wrap gap-10 md:justify-end text-sm">
-              <Link href="/login" className="font-bold hover:text-brand-orange transition-colors">Login</Link>
+              <button
+                type="button"
+                onClick={() => redirectToHostedUI("/")}
+                className="font-bold hover:text-brand-orange transition-colors"
+              >
+                Login
+              </button>
               <Link href="/terms" className="font-bold hover:text-brand-orange transition-colors flex items-center gap-2">
                 Termos de Uso
               </Link>

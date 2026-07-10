@@ -3,12 +3,12 @@ import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import Navbar from './Navbar';
 import { useAuthStore } from '@/store/authStore';
-import { useRouter } from 'next/navigation';
 import { useTenant } from '@/contexts/TenantContext';
 
 // Mocks
-vi.mock('next/navigation', () => ({
-  useRouter: vi.fn(),
+const mockLogoutFromHostedUI = vi.fn();
+vi.mock('@/lib/pkce', () => ({
+  logoutFromHostedUI: (...args: unknown[]) => mockLogoutFromHostedUI(...args),
 }));
 
 vi.mock('next/image', () => ({
@@ -28,14 +28,12 @@ vi.mock('@/contexts/TenantContext', () => ({
 }));
 
 describe('Navbar Component', () => {
-  const mockPush = vi.fn();
   const mockLogout = vi.fn();
   const mockOnRefresh = vi.fn();
   const mockOnNewLead = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
-    (useRouter as any).mockReturnValue({ push: mockPush });
     (useAuthStore as any).mockReturnValue({
       session: { name: 'Jared Evans', role: 'User' },
       logout: mockLogout,
@@ -108,7 +106,7 @@ describe('Navbar Component', () => {
     await user.click(logoutButton);
 
     expect(mockLogout).toHaveBeenCalled();
-    expect(mockPush).toHaveBeenCalledWith('/login');
+    expect(mockLogoutFromHostedUI).toHaveBeenCalled();
   });
 
   it('deve bloquear o scroll do body quando o menu mobile estiver aberto', async () => {

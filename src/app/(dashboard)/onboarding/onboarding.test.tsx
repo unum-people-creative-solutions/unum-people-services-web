@@ -22,6 +22,11 @@ vi.mock('@/services/api', () => ({
   },
 }));
 
+const mockRedirectToHostedUI = vi.fn();
+vi.mock('@/lib/pkce', () => ({
+  redirectToHostedUI: (...args: unknown[]) => mockRedirectToHostedUI(...args),
+}));
+
 describe('OnboardingPage', () => {
   const mockPush = vi.fn();
   const mockSetSession = vi.fn();
@@ -51,13 +56,14 @@ describe('OnboardingPage', () => {
     });
   });
 
-  it('deve redirecionar para login se não houver sessão', async () => {
+  // TASK-FE-CRM-003: não existe mais página /login própria do app.
+  it('redireciona para o Hosted UI (Cognito) se não houver sessão', async () => {
     (useAuthStore as any).mockReturnValue({ session: null });
 
     render(<OnboardingPage />);
 
     await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith('/login');
+      expect(mockRedirectToHostedUI).toHaveBeenCalledWith('/');
     });
   });
 

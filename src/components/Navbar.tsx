@@ -2,17 +2,17 @@
 
 import { useState, useEffect } from "react";
 import { useAuthStore } from "@/store/authStore";
-import { useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { 
-  Menu, X, LogOut, Settings, LayoutGrid, Building, 
-  ExternalLink, ChevronDown, Plus, TrendingUp, HelpCircle, 
+import {
+  Menu, X, LogOut, Settings, LayoutGrid, Building,
+  ExternalLink, ChevronDown, Plus, TrendingUp, HelpCircle,
   RefreshCw
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { getGoogleAdsAuthUrl } from "@/lib/google-ads";
 import { useTenant } from "@/contexts/TenantContext";
+import { logoutFromHostedUI } from "@/lib/pkce";
 import pkg from "../../package.json";
 
 interface NavbarProps {
@@ -33,7 +33,6 @@ export default function Navbar({
   children 
 }: NavbarProps) {
   const { session, logout } = useAuthStore();
-  const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isTenantDropdownOpen, setIsTenantDropdownOpen] = useState(false);
   const {
@@ -58,7 +57,7 @@ export default function Navbar({
 
   const handleLogout = () => {
     logout();
-    router.push("/login");
+    logoutFromHostedUI();
   };
 
   const adsUrl = getGoogleAdsAuthUrl(session?.role === "GlobalAdmin" ? "MASTER" : (activeTenantId || ""));

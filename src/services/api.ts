@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { useAuthStore } from '@/store/authStore';
+import { redirectToHostedUI } from '@/lib/pkce';
 
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_GATEWAY_URL,
@@ -20,7 +21,9 @@ api.interceptors.response.use(
       console.error("Não autorizado. Limpando sessão...");
       useAuthStore.getState().logout();
       if (typeof window !== 'undefined') {
-        window.location.href = '/login';
+        // TASK-FE-CRM-003: não existe mais página /login própria do app —
+        // reautenticação sempre passa pelo Hosted UI (Cognito).
+        void redirectToHostedUI(window.location.pathname);
       }
     }
     if (error.response?.status === 403) {

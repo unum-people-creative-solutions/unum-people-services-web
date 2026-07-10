@@ -27,11 +27,6 @@ export const cpfSchema = z.string().refine((val) => {
   return true;
 }, "CPF inválido");
 
-export const loginSchema = z.object({
-  email: emailSchema,
-  password: z.string().min(1, "Senha é obrigatória"),
-});
-
 export const tenantSchema = z.object({
   nome_negocio: z.string().min(2, "Nome do negócio deve ter pelo menos 2 caracteres"),
   nome_admin: z.string().min(2, "Nome do administrador deve ter pelo menos 2 caracteres"),
@@ -49,15 +44,6 @@ export const leadSchema = z.object({
   data_nascimento: z.string().optional().or(z.literal("")),
   origem: z.string(),
   anotacoes: z.string().optional(),
-});
-
-export const forgotPasswordSchema = z.object({
-  email: emailSchema,
-});
-
-export const resetPasswordSchema = z.object({
-  code: z.string().min(6, "Código deve ter pelo menos 6 caracteres"),
-  newPassword: z.string().min(8, "Senha deve ter pelo menos 8 caracteres"),
 });
 
 export const userInviteSchema = z.object({

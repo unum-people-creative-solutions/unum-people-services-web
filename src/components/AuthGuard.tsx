@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
 import { jwtDecode } from "jwt-decode";
 import TermsModal from "./TermsModal";
@@ -9,10 +9,10 @@ import ServiceAgreementGate from "./ServiceAgreementGate";
 import ServiceAgreementWaiting from "./ServiceAgreementWaiting";
 import { ServiceAgreementService, ServiceAgreementStatusResponse } from "@/services/api";
 import { AnimatePresence } from "framer-motion";
+import { redirectToHostedUI } from "@/lib/pkce";
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, session, logout } = useAuthStore();
-  const router = useRouter();
   const pathname = usePathname();
   const [isHydrated, setIsHydrated] = useState(false);
   const [mustAcceptTerms, setMustAcceptTerms] = useState(false);
@@ -30,21 +30,15 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     return () => unsub();
   }, []);
 
-  const publicPaths = ["/", "/login", "/forgot-password", "/privacy", "/terms"];
+  const publicPaths = ["/", "/privacy", "/terms", "/auth/callback"];
   const isPublicPath = publicPaths.includes(pathname);
 
   useEffect(() => {
     if (isHydrated) {
-      // 1. Redirecionar usuário logado se tentar acessar login
-      if (pathname === "/login" && isAuthenticated && session?.token) {
-        router.push("/kanban");
-        return;
-      }
-
-      // 2. Verificar se o caminho é público
+      // Verificar se o caminho é público
       if (!isPublicPath) {
         if (!isAuthenticated || !session?.token) {
-          router.push("/login");
+          void redirectToHostedUI(pathname);
           return;
         }
 
@@ -56,12 +50,12 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
           if (decoded.exp < currentTime) {
             console.warn("Sessão expirada. Redirecionando...");
             logout();
-            router.push("/login");
+            void redirectToHostedUI(pathname);
             return;
           }
         } catch (err) {
           logout();
-          router.push("/login");
+          void redirectToHostedUI(pathname);
           return;
         }
 
@@ -79,7 +73,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
         setMustAcceptTerms(false);
       }
     }
-  }, [isHydrated, isAuthenticated, session, pathname, isPublicPath, router, logout]);
+  }, [isHydrated, isAuthenticated, session, pathname, isPublicPath, logout]);
 
   // SUG-8 (/local-review): a busca do Termo de Contratação de Serviço vive
   // num efeito à parte, sem `pathname`/`session`/`router` nas deps (só o que
