@@ -120,7 +120,12 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     return () => clearInterval(intervalId);
   }, [isWaitingForAgreement]);
 
-  if (!isHydrated) {
+  // BUG DE PRODUÇÃO (2026-07): sem essa trava, `children` sempre renderizava
+  // assim que hidratado, mesmo sem sessão válida em rota privada — em rotas
+  // que não existem mais (ex.: a extinta /login), isso deixava o 404 real do
+  // Next.js visível enquanto o redirect assíncrono pro Hosted UI ainda não
+  // completava (mesmo padrão já usado no AuthGuard do blog-admin).
+  if (!isHydrated || (!isPublicPath && (!isAuthenticated || !session?.token))) {
     return (
       <div className="h-screen flex items-center justify-center bg-gray-50">
         <div role="status" className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>

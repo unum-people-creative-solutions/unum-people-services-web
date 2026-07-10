@@ -154,6 +154,27 @@ describe('AuthGuard', () => {
       });
     });
 
+    // BUG DE PRODUÇÃO (2026-07): a extinta rota /login virou 404 do Next.js
+    // (em vez do comportamento fluido do blog-admin, que mostra um loader)
+    // porque o AuthGuard sempre renderizava `children` assim que hidratado,
+    // mesmo sem sessão — o conteúdo por trás (aqui, a página de 404 real)
+    // ficava visível enquanto o redirect assíncrono ainda não completava.
+    it('nunca renderiza children em rota privada sem sessão válida — evita expor o 404 por trás enquanto o redirect está em andamento', async () => {
+      (useAuthStore as any).mockReturnValue({
+        isAuthenticated: false,
+        session: null,
+        logout: mockLogout,
+      });
+
+      render(
+        <AuthGuard>
+          <div data-testid="pagina-404-real">Página não encontrada</div>
+        </AuthGuard>
+      );
+
+      expect(screen.queryByTestId('pagina-404-real')).not.toBeInTheDocument();
+    });
+
     it('aciona redirectToHostedUI se o token estiver expirado', async () => {
       const expiredTime = Date.now() / 1000 - 1000;
       (jwtDecode as any).mockReturnValue({ exp: expiredTime });
