@@ -157,26 +157,6 @@ export const TenantService = {
   }
 };
 
-export interface ServiceAgreementStatusResponse {
-  status: 'pendente' | 'aceito';
-  term_name: string;
-  required_version: number;
-  document_url: string;
-  accepted_version?: number;
-  accepted_at?: string;
-  can_accept: boolean;
-}
-
-export const ServiceAgreementService = {
-  getMyStatus: async (): Promise<ServiceAgreementStatusResponse> => {
-    const response = await api.get('/me/service-agreement');
-    return response.data;
-  },
-  accept: async (version: number): Promise<void> => {
-    await api.post('/me/service-agreement/accept', { version });
-  },
-};
-
 export interface TermStatusItem {
   type: string;
   term_id: string;
