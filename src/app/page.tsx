@@ -175,10 +175,10 @@ export default function LandingPage() {
               >
                 Login
               </button>
-              <Link href={TERMOS_DE_USO_URL} className="font-bold hover:text-brand-orange transition-colors flex items-center gap-2">
+              <Link href={TERMOS_DE_USO_URL} target="_blank" rel="noopener noreferrer" className="font-bold hover:text-brand-orange transition-colors flex items-center gap-2">
                 Termos de Uso
               </Link>
-              <Link href={POLITICA_PRIVACIDADE_URL} className="font-bold hover:text-brand-orange transition-colors flex items-center gap-2">
+              <Link href={POLITICA_PRIVACIDADE_URL} target="_blank" rel="noopener noreferrer" className="font-bold hover:text-brand-orange transition-colors flex items-center gap-2">
                 Privacidade
               </Link>
             </div>
