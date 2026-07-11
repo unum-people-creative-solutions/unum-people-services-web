@@ -6,6 +6,10 @@ import Image from "next/image";
 import { CheckCircle, BarChart3, Users, Zap, ShieldCheck, FileText, Smartphone } from "lucide-react";
 import { redirectToHostedUI } from "@/lib/pkce";
 
+// TODO: substituir pelo content_html_url real após TASK-CONTENT-001 publicar o Term v1
+const TERMOS_DE_USO_URL = "PLACEHOLDER_TERMOS_DE_USO_URL";
+const POLITICA_PRIVACIDADE_URL = "PLACEHOLDER_POLITICA_PRIVACIDADE_URL";
+
 export default function LandingPage() {
   useEffect(() => {
     // Detecta se o app está rodando em modo standalone (PWA/TWA)
@@ -171,10 +175,10 @@ export default function LandingPage() {
               >
                 Login
               </button>
-              <Link href="/terms" className="font-bold hover:text-brand-orange transition-colors flex items-center gap-2">
+              <Link href={TERMOS_DE_USO_URL} className="font-bold hover:text-brand-orange transition-colors flex items-center gap-2">
                 Termos de Uso
               </Link>
-              <Link href="/privacy" className="font-bold hover:text-brand-orange transition-colors flex items-center gap-2">
+              <Link href={POLITICA_PRIVACIDADE_URL} className="font-bold hover:text-brand-orange transition-colors flex items-center gap-2">
                 Privacidade
               </Link>
             </div>
