@@ -144,4 +144,20 @@ describe("PendingTermsGate", () => {
       expect(TermsService.getStatus).toHaveBeenCalledWith("tenant-custom-456");
     });
   });
+
+  it("nunca loga o erro cru (com token no header) no console — só status/mensagem sanitizados", async () => {
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    (TermsService.getStatus as any).mockRejectedValue(new Error("Network error"));
+
+    render(<PendingTermsGate />);
+
+    await waitFor(() => {
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        "Erro ao carregar status dos termos:",
+        "Network error"
+      );
+    });
+
+    consoleErrorSpy.mockRestore();
+  });
 });
