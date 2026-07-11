@@ -77,6 +77,13 @@ describe("PendingTermsGate", () => {
       expect(screen.getByText("Você tem termos pendentes")).toBeInTheDocument();
     });
 
+    // D8: PendingTermsGate nunca renderiza conteúdo do termo nem checkbox —
+    // a única ação possível é o redirect pro Portal do Cliente.
+    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+    expect(screen.queryByText("Termos de Uso")).not.toBeInTheDocument();
+    expect(screen.queryByText("http://cdn/termos.html")).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /termos.html/i })).not.toBeInTheDocument();
+
     const ctaButton = screen.getByRole("button", { name: /ir para o portal do cliente/i });
     fireEvent.click(ctaButton);
 
