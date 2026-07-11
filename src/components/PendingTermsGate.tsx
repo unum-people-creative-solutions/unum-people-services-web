@@ -28,7 +28,10 @@ export default function PendingTermsGate() {
         setPendingItems(res.pending || []);
       })
       .catch((err) => {
-        console.error("Erro ao carregar status dos termos:", err);
+        console.error(
+          "Erro ao carregar status dos termos:",
+          err?.response?.status ?? err?.message ?? "erro desconhecido"
+        );
         // Tratar como pendente/não-acionável (fail-closed)
         setPendingItems([
           {
