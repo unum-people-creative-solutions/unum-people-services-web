@@ -177,4 +177,30 @@ export const ServiceAgreementService = {
   },
 };
 
+export interface TermStatusItem {
+  type: string;
+  term_id: string;
+  term_name: string;
+  required_version: number;
+  can_accept: boolean;
+  document_url: string;
+  accepted_version?: number;
+  accepted_at?: string;
+}
+
+export interface TermsStatusResponse {
+  pending: TermStatusItem[];
+}
+
+export const TermsService = {
+  getStatus: async (tenantId?: string): Promise<TermsStatusResponse> => {
+    let url = '/me/terms/status';
+    if (tenantId) {
+      url += `?tenant_id=${tenantId}`;
+    }
+    const response = await api.get(url);
+    return response.data;
+  },
+};
+
 export default api;

@@ -4,19 +4,14 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
 import { jwtDecode } from "jwt-decode";
-import TermsModal from "./TermsModal";
-import ServiceAgreementGate from "./ServiceAgreementGate";
-import ServiceAgreementWaiting from "./ServiceAgreementWaiting";
-import { ServiceAgreementService, ServiceAgreementStatusResponse } from "@/services/api";
-import { AnimatePresence } from "framer-motion";
+import PendingTermsGate from "./PendingTermsGate";
 import { redirectToHostedUI } from "@/lib/pkce";
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, session, logout } = useAuthStore();
   const pathname = usePathname();
   const [isHydrated, setIsHydrated] = useState(false);
-  const [mustAcceptTerms, setMustAcceptTerms] = useState(false);
-  const [agreementStatus, setAgreementStatus] = useState<ServiceAgreementStatusResponse | null>(null);
+
 
   useEffect(() => {
     const unsub = useAuthStore.persist.onFinishHydration(() => {
@@ -59,18 +54,6 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
           return;
         }
 
-        // 4. Verificação de Consentimento LGPD (localStorage)
-        if (session?.email) {
-          const accepted = localStorage.getItem(`terms-accepted-${session.email}`);
-          if (!accepted) {
-            setMustAcceptTerms(true);
-          } else {
-            setMustAcceptTerms(false);
-          }
-        }
-      } else {
-        // Se estiver em rota pública, não forçar modal
-        setMustAcceptTerms(false);
       }
     }
   }, [isHydrated, isAuthenticated, session, pathname, isPublicPath, logout]);
@@ -85,40 +68,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   // como pendente/sem permissão de aceite (tela de espera) em vez de liberar
   // o acesso — nunca assumir "sem gate" só porque não conseguimos confirmar
   // o status.
-  useEffect(() => {
-    if (!isHydrated) return;
 
-    if (isPublicPath || !isAuthenticated) {
-      setAgreementStatus(null);
-      return;
-    }
-
-    ServiceAgreementService.getMyStatus()
-      .then(setAgreementStatus)
-      .catch(() => setAgreementStatus({
-        status: 'pendente',
-        term_name: '',
-        required_version: 0,
-        document_url: '',
-        can_accept: false,
-      }));
-  }, [isHydrated, isAuthenticated, isPublicPath]);
-
-  // SUG-3 (/local-review): quem vê ServiceAgreementWaiting não é quem aceita
-  // (é o TenantAdmin, em outra sessão/dispositivo) — sem polling, a tela só
-  // desbloqueava com um F5 manual depois do aceite acontecer em outro lugar.
-  const isWaitingForAgreement = agreementStatus?.status === 'pendente' && agreementStatus.can_accept === false;
-  useEffect(() => {
-    if (!isWaitingForAgreement) return;
-
-    const intervalId = setInterval(() => {
-      ServiceAgreementService.getMyStatus()
-        .then(setAgreementStatus)
-        .catch(() => {});
-    }, 15000);
-
-    return () => clearInterval(intervalId);
-  }, [isWaitingForAgreement]);
 
   // BUG DE PRODUÇÃO (2026-07): sem essa trava, `children` sempre renderizava
   // assim que hidratado, mesmo sem sessão válida em rota privada — em rotas
@@ -136,24 +86,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   return (
     <>
       {children}
-      <AnimatePresence>
-        {mustAcceptTerms && session?.email && (
-          <TermsModal
-            email={session.email}
-            onAccept={() => setMustAcceptTerms(false)}
-          />
-        )}
-      </AnimatePresence>
-      {agreementStatus?.status === "pendente" && (
-        agreementStatus.can_accept ? (
-          <ServiceAgreementGate
-            status={agreementStatus}
-            onAccepted={() => setAgreementStatus((prev) => (prev ? { ...prev, status: "aceito" } : prev))}
-          />
-        ) : (
-          <ServiceAgreementWaiting />
-        )
-      )}
+      {!isPublicPath && isAuthenticated && <PendingTermsGate />}
     </>
   );
 }
