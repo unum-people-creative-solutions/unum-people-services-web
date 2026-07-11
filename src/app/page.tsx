@@ -6,9 +6,8 @@ import Image from "next/image";
 import { CheckCircle, BarChart3, Users, Zap, ShieldCheck, FileText, Smartphone } from "lucide-react";
 import { redirectToHostedUI } from "@/lib/pkce";
 
-// TODO: substituir pelo content_html_url real após TASK-CONTENT-001 publicar o Term v1
-const TERMOS_DE_USO_URL = "PLACEHOLDER_TERMOS_DE_USO_URL";
-const POLITICA_PRIVACIDADE_URL = "PLACEHOLDER_POLITICA_PRIVACIDADE_URL";
+const TERMOS_DE_USO_URL = "https://unumpeople.com.br/termos/9824049f-1b1b-4391-b271-53230c69f9b9/v1";
+const POLITICA_PRIVACIDADE_URL = "https://unumpeople.com.br/termos/5558327c-6ee1-4549-8e1b-dc03fdae516a/v1";
 
 export default function LandingPage() {
   useEffect(() => {
