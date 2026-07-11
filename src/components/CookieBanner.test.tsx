@@ -56,4 +56,13 @@ describe('CookieBanner Component', () => {
     expect(window.localStorage.getItem('cookie-consent')).toBeNull();
     expect(screen.queryByText('Nós valorizamos sua privacidade')).not.toBeInTheDocument();
   });
+
+  it('deve exibir o link de política de privacidade com as propriedades corretas', () => {
+    render(<CookieBanner />);
+    const link = screen.getByRole('link', { name: /Política de Privacidade/i });
+    expect(link).toBeInTheDocument();
+    expect(link.getAttribute('href')).toMatch(/^https:\/\/unumpeople\.com\.br\/termos\//);
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+  });
 });
