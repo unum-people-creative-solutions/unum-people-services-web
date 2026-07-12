@@ -80,7 +80,7 @@ describe("AuthGuard", () => {
   });
 
   it("deve renderizar children em rotas públicas sem autenticação", async () => {
-    (usePathname as any).mockReturnValue("/privacy");
+    (usePathname as any).mockReturnValue("/");
     (useAuthStore as any).mockReturnValue({
       isAuthenticated: false,
       session: null,
@@ -183,7 +183,7 @@ describe("AuthGuard", () => {
     });
 
     it("não deve exibir PendingTermsGate em rotas públicas", async () => {
-      (usePathname as any).mockReturnValue("/privacy");
+      (usePathname as any).mockReturnValue("/");
       (useAuthStore as any).mockReturnValue({
         isAuthenticated: false,
         session: null,

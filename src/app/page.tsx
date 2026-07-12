@@ -6,6 +6,9 @@ import Image from "next/image";
 import { CheckCircle, BarChart3, Users, Zap, ShieldCheck, FileText, Smartphone } from "lucide-react";
 import { redirectToHostedUI } from "@/lib/pkce";
 
+const TERMOS_DE_USO_URL = "https://unumpeople.com.br/termos/9824049f-1b1b-4391-b271-53230c69f9b9/v1";
+const POLITICA_PRIVACIDADE_URL = "https://unumpeople.com.br/termos/5558327c-6ee1-4549-8e1b-dc03fdae516a/v1";
+
 export default function LandingPage() {
   useEffect(() => {
     // Detecta se o app está rodando em modo standalone (PWA/TWA)
@@ -171,10 +174,10 @@ export default function LandingPage() {
               >
                 Login
               </button>
-              <Link href="/terms" className="font-bold hover:text-brand-orange transition-colors flex items-center gap-2">
+              <Link href={TERMOS_DE_USO_URL} target="_blank" rel="noopener noreferrer" className="font-bold hover:text-brand-orange transition-colors flex items-center gap-2">
                 Termos de Uso
               </Link>
-              <Link href="/privacy" className="font-bold hover:text-brand-orange transition-colors flex items-center gap-2">
+              <Link href={POLITICA_PRIVACIDADE_URL} target="_blank" rel="noopener noreferrer" className="font-bold hover:text-brand-orange transition-colors flex items-center gap-2">
                 Privacidade
               </Link>
             </div>

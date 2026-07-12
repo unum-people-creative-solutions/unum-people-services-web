@@ -25,7 +25,7 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     return () => unsub();
   }, []);
 
-  const publicPaths = ["/", "/privacy", "/terms", "/auth/callback"];
+  const publicPaths = ["/", "/auth/callback"];
   const isPublicPath = publicPaths.includes(pathname);
 
   useEffect(() => {
