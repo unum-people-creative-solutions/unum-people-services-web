@@ -17,6 +17,7 @@ import * as XLSX from "xlsx";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { leadSchema } from "@/lib/validations";
+import { ganhoRange, todayLocalISODate, formatCalendarDate } from "@/lib/dates";
 import { Input } from "@/components/ui/Input";
 import { PhoneInput } from "@/components/ui/PhoneInput";
 import { CPFInput } from "@/components/ui/CPFInput";
@@ -139,7 +140,7 @@ function KanbanContent() {
   
   const [quickMoveLead, setQuickMoveLead] = useState<any>(null);
   const [saleValueMasked, setSaleValueMasked] = useState("");
-  const [saleDate, setSaleDate] = useState(new Date().toISOString().split('T')[0]);
+  const [saleDate, setSaleDate] = useState(todayLocalISODate());
   const [pendingMove, setPendingMove] = useState<any>(null);
 
   // Forms
@@ -205,7 +206,7 @@ function KanbanContent() {
             "E-mail": lead.email,
             "Telefone": lead.telefone || "N/A",
             "CPF": lead.cpf || "N/A",
-            "Data Nasc.": lead.data_nascimento ? new Date(lead.data_nascimento).toLocaleDateString('pt-BR') : "N/A",
+            "Data Nasc.": lead.data_nascimento ? formatCalendarDate(lead.data_nascimento) : "N/A",
             "Origem": lead.origem,
             "Qtd. Vendas": periodSales.length,
             "Total de Vendas (R$)": totalLeadSales
@@ -244,9 +245,9 @@ function KanbanContent() {
             "Nome do Cliente": lead.nome,
             "E-mail": lead.email,
             "CPF": lead.cpf || "N/A",
-            "Data Nasc.": lead.data_nascimento ? new Date(lead.data_nascimento).toLocaleDateString('pt-BR') : "N/A",
+            "Data Nasc.": lead.data_nascimento ? formatCalendarDate(lead.data_nascimento) : "N/A",
             "Valor da Venda (R$)": sale.valor,
-            "Data da Venda": new Date(sale.data).toLocaleDateString('pt-BR')
+            "Data da Venda": formatCalendarDate(sale.data)
           });
         });
       });
@@ -307,16 +308,20 @@ function KanbanContent() {
 
     if (!silent) setLoading(true);
     try {
+      // Perdido: data da perda é um instante real, então usa os limites locais do navegador.
       const start = new Date(selectedYear, selectedMonth, 1).toISOString();
       const end = new Date(selectedYear, selectedMonth + 1, 0, 23, 59, 59).toISOString();
+      // Ganho: data da venda é um dia de calendário (meia-noite UTC), então usa limites UTC.
+      const ganho = ganhoRange(selectedYear, selectedMonth);
       
       const results: any = {};
       await Promise.all(statusList.map(async (status) => {
         const isFiltered = status === "GANHO" || status === "PERDIDO";
+        const range = status === "GANHO" ? { start: ganho.start, end: ganho.end } : { start, end };
         const data = await LeadService.list(
           status, 
-          isFiltered ? start : undefined, 
-          isFiltered ? end : undefined, 
+          isFiltered ? range.start : undefined, 
+          isFiltered ? range.end : undefined, 
           activeTenantId
         );
         results[status] = data || [];
@@ -468,7 +473,7 @@ function KanbanContent() {
       setIsNewSaleModalOpen(false);
       setSelectedCustomer(null);
       setSaleValueMasked("");
-      setSaleDate(new Date().toISOString().split('T')[0]);
+      setSaleDate(todayLocalISODate());
       loadLeads(true);
     } catch (err) { alert("Falha ao registrar venda"); }
   };
@@ -492,7 +497,7 @@ function KanbanContent() {
     await executeMove(pendingMove.draggableId, pendingMove.destinationId, rawValue, saleDate);
     setIsSaleModalOpen(false);
     setSaleValueMasked("");
-    setSaleDate(new Date().toISOString().split('T')[0]);
+    setSaleDate(todayLocalISODate());
     setPendingMove(null);
   };
 
@@ -948,8 +953,8 @@ function KanbanContent() {
                       </div>
                     </div>
                     <div>
-                      <label className="block text-sm font-bold text-gray-700 mb-2">Data da Venda</label>
-                      <input type="date" required value={saleDate} onChange={(e) => setSaleDate(e.target.value)} className="w-full border p-3 rounded-md outline-none focus:ring-2 focus:ring-green-500 font-bold text-gray-700" />
+                      <label htmlFor="new-sale-date" className="block text-sm font-bold text-gray-700 mb-2">Data da Venda</label>
+                      <input id="new-sale-date" type="date" required value={saleDate} onChange={(e) => setSaleDate(e.target.value)} className="w-full border p-3 rounded-md outline-none focus:ring-2 focus:ring-green-500 font-bold text-gray-700" />
                     </div>
                     <button type="submit" className="w-full bg-green-600 text-white p-4 rounded-md font-bold hover:bg-green-700 shadow-lg transition-all">Confirmar Venda</button>
                   </form>
@@ -1168,8 +1173,8 @@ function KanbanContent() {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Data da Venda</label>
-                    <input type="date" required value={saleDate} onChange={(e) => setSaleDate(e.target.value)} className="w-full border p-3 rounded-md outline-none focus:ring-2 focus:ring-green-500 font-bold text-gray-700" />
+                    <label htmlFor="move-sale-date" className="block text-xs font-bold text-gray-400 uppercase mb-1">Data da Venda</label>
+                    <input id="move-sale-date" type="date" required value={saleDate} onChange={(e) => setSaleDate(e.target.value)} className="w-full border p-3 rounded-md outline-none focus:ring-2 focus:ring-green-500 font-bold text-gray-700" />
                   </div>
                   <button type="submit" className="w-full bg-green-600 text-white p-4 rounded-md font-bold hover:bg-green-700 transition-all">Confirmar Venda</button>
                   <button type="button" onClick={() => { setIsSaleModalOpen(false); setPendingMove(null); loadLeads(true); }} className="w-full bg-gray-100 p-2 mt-2 rounded font-bold text-gray-500 text-xs">Cancelar movimento</button>

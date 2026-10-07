@@ -1,6 +1,6 @@
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import KanbanPage from './page';
 import { LeadService, TenantService } from '@/services/api';
 import { useAuthStore } from '@/store/authStore';
@@ -135,6 +135,94 @@ describe('KanbanPage', () => {
 
     const { writeFile } = await import('xlsx');
     expect(writeFile).toHaveBeenCalled();
+  });
+
+  describe('Datas de venda no mês certo (CA-01, CA-03, CA-04)', () => {
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    // O fuso (America/Sao_Paulo) vem de test.env.TZ no vitest.config.ts.
+    const fixTime = (date: Date) => {
+      vi.useFakeTimers({ toFake: ['Date'] });
+      vi.setSystemTime(date);
+    };
+
+    const openNewSaleForm = async (user: ReturnType<typeof userEvent.setup>) => {
+      (LeadService.searchCustomers as any).mockResolvedValue([
+        { id: 'lead-2', nome: 'Maria Souza', telefone: '11966665555', status: 'GANHO' },
+      ]);
+      await user.click(screen.getByRole('button', { name: /Menu Principal/i }));
+      await user.click(screen.getAllByText('Registrar Nova Venda')[0]);
+      await user.type(screen.getByPlaceholderText(/Pesquisar cliente/i), 'ma');
+      await user.click(await screen.findByRole('button', { name: /Maria Souza/i }));
+    };
+
+    it('T08 — pede Ganho com limites de dia de calendário UTC e Perdido com limites locais', async () => {
+      fixTime(new Date(2026, 8, 15, 12, 0));
+      render(<KanbanPage />);
+
+      await waitFor(() => {
+        expect(LeadService.list).toHaveBeenCalledWith(
+          'GANHO',
+          '2026-09-01T00:00:00.000Z',
+          '2026-09-30T23:59:59.999Z',
+          'tenant-1'
+        );
+      });
+      expect(LeadService.list).toHaveBeenCalledWith(
+        'PERDIDO',
+        new Date(2026, 8, 1).toISOString(),
+        new Date(2026, 9, 0, 23, 59, 59).toISOString(),
+        'tenant-1'
+      );
+    });
+
+    it('T09 — o campo Data da Venda vem com a data local às 22:30 de 30/09', async () => {
+      fixTime(new Date(2026, 8, 30, 22, 30));
+      const user = userEvent.setup();
+      render(<KanbanPage />);
+      await waitFor(() => expect(screen.queryByText(/Sincronizando/i)).not.toBeInTheDocument());
+
+      await openNewSaleForm(user);
+
+      expect(screen.getByLabelText('Data da Venda')).toHaveValue('2026-09-30');
+    });
+
+    it('T10/CA-04 — a exportação mostra a venda do dia 1 e a data de nascimento sem deslocar um dia', async () => {
+      fixTime(new Date(2026, 8, 15, 12, 0));
+      const leadComVenda = {
+        id: 'lead-9',
+        nome: 'Ana Lima',
+        email: 'ana@test.com',
+        telefone: '11977776666',
+        cpf: '12345678900',
+        data_nascimento: '1990-05-12',
+        origem: 'Indicação',
+        status: 'GANHO',
+        sales: [{ valor: 500, data: '2026-09-01T00:00:00Z' }],
+      };
+      (LeadService.list as any).mockImplementation((status: string) =>
+        Promise.resolve(status === 'GANHO' ? [leadComVenda] : [])
+      );
+      const user = userEvent.setup();
+      render(<KanbanPage />);
+      await waitFor(() => expect(screen.queryByText(/Sincronizando/i)).not.toBeInTheDocument());
+
+      await user.click(screen.getByTitle(/Exportar Relatório/i));
+
+      const XLSX = await import('xlsx');
+      const sheets = (XLSX.utils.json_to_sheet as any).mock.calls.map((c: any[]) => c[0]);
+      const detailed = sheets[1];
+      expect(detailed).toEqual([
+        expect.objectContaining({
+          'Data da Venda': '01/09/2026',
+          'Data Nasc.': '12/05/1990',
+          'Valor da Venda (R$)': 500,
+        }),
+      ]);
+      expect(sheets[0][0]).toEqual(expect.objectContaining({ 'Data Nasc.': '12/05/1990' }));
+    });
   });
 
   // T-04.1/T-04.2 (TenantService.list vs listMyTenants) e T-05.1-3 (inquilinos
