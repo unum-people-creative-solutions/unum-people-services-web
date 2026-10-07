@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, Suspense, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
-import api, { LeadService, TenantService, LeadData } from "@/services/api";
+import api, { LeadService, TenantService, LeadData, MonthSale } from "@/services/api";
 import { useAuthStore } from "@/store/authStore";
 import { useTenant } from "@/contexts/TenantContext";
 import { Plus, X, LogOut, Settings, DollarSign, AlertCircle, Calendar, Eye, EyeOff, Users, Edit2, Mail, Phone, User, Search, TrendingUp, RefreshCw, HelpCircle, Tag, ExternalLink, LayoutGrid, ArrowRightLeft, MessageCircle, Clock, Trash2, AlertTriangle } from "lucide-react";
@@ -137,6 +137,11 @@ function KanbanContent() {
   const [deleteConfirmationText, setDeleteConfirmText] = useState("");
   
   const [showRevenue, setShowRevenue] = useState(false);
+
+  // Vendas do mês selecionado (fonte do Faturamento e da exportação — RF-09/RF-10)
+  const [monthSales, setMonthSales] = useState<MonthSale[]>([]);
+  const [salesError, setSalesError] = useState(false);
+  const salesRequestId = useRef(0);
   
   const [quickMoveLead, setQuickMoveLead] = useState<any>(null);
   const [saleValueMasked, setSaleValueMasked] = useState("");
@@ -180,48 +185,46 @@ function KanbanContent() {
 
   // Função para exportar Excel de vendas e leads
   const handleExportSales = () => {
+    if (salesError) {
+      alert("Não foi possível carregar as vendas do mês. Atualize e tente de novo.");
+      return;
+    }
+
     setIsExporting(true);
     try {
-      const salesLeads = boardData["GANHO"] || [];
-      
-      if (salesLeads.length === 0) {
+      if (monthSales.length === 0) {
         alert("Nenhuma venda encontrada no período selecionado.");
         setIsExporting(false);
         return;
       }
 
-      // 1. DADOS PARA A ABA DE RESUMO (Primeira Aba)
+      // 1. DADOS PARA A ABA DE RESUMO (Primeira Aba): uma linha por lead_id
+      const salesByLead = new Map<string, MonthSale[]>();
+      monthSales.forEach((sale) => {
+        const list = salesByLead.get(sale.lead_id);
+        if (list) list.push(sale);
+        else salesByLead.set(sale.lead_id, [sale]);
+      });
+
       const summaryData: any[] = [];
       let grandTotal = 0;
 
-      salesLeads.forEach((lead: any) => {
-        const periodSales = (lead.sales || []).filter((s: any) => {
-          const d = parseSafeDate(s.data);
-          return d.getMonth() === selectedMonth && d.getFullYear() === selectedYear;
+      salesByLead.forEach((leadSales) => {
+        const lead = leadSales[0];
+        const totalLeadSales = leadSales.reduce((sum, s) => sum + s.valor, 0);
+        grandTotal += totalLeadSales;
+
+        summaryData.push({
+          "Nome do Cliente": lead.nome,
+          "E-mail": lead.email,
+          "Telefone": lead.telefone || "N/A",
+          "CPF": lead.cpf || "N/A",
+          "Data Nasc.": lead.data_nascimento ? formatCalendarDate(lead.data_nascimento) : "N/A",
+          "Origem": lead.origem,
+          "Qtd. Vendas": leadSales.length,
+          "Total de Vendas (R$)": totalLeadSales
         });
-
-        if (periodSales.length > 0) {
-          const totalLeadSales = periodSales.reduce((sum: number, s: any) => sum + s.valor, 0);
-          grandTotal += totalLeadSales;
-
-          summaryData.push({
-            "Nome do Cliente": lead.nome,
-            "E-mail": lead.email,
-            "Telefone": lead.telefone || "N/A",
-            "CPF": lead.cpf || "N/A",
-            "Data Nasc.": lead.data_nascimento ? formatCalendarDate(lead.data_nascimento) : "N/A",
-            "Origem": lead.origem,
-            "Qtd. Vendas": periodSales.length,
-            "Total de Vendas (R$)": totalLeadSales
-          });
-        }
       });
-
-      if (summaryData.length === 0) {
-        alert("Nenhuma venda encontrada no período selecionado.");
-        setIsExporting(false);
-        return;
-      }
 
       // Adiciona linha de TOTAL no Resumo
       summaryData.push({
@@ -235,25 +238,15 @@ function KanbanContent() {
         "Total de Vendas (R$)": grandTotal
       });
 
-      // 2. DADOS PARA A ABA DE VENDAS DETALHADAS (Segunda Aba)
-      const detailedData: any[] = [];
-      salesLeads.forEach((lead: any) => {
-        const periodSales = (lead.sales || []).filter((s: any) => {
-          const d = parseSafeDate(s.data);
-          return d.getMonth() === selectedMonth && d.getFullYear() === selectedYear;
-        });
-
-        periodSales.forEach((sale: any) => {
-          detailedData.push({
-            "Nome do Cliente": lead.nome,
-            "E-mail": lead.email,
-            "CPF": lead.cpf || "N/A",
-            "Data Nasc.": lead.data_nascimento ? formatCalendarDate(lead.data_nascimento) : "N/A",
-            "Valor da Venda (R$)": sale.valor,
-            "Data da Venda": formatCalendarDate(sale.data)
-          });
-        });
-      });
+      // 2. DADOS PARA A ABA DE VENDAS DETALHADAS (Segunda Aba): uma linha por venda
+      const detailedData: any[] = monthSales.map((sale) => ({
+        "Nome do Cliente": sale.nome,
+        "E-mail": sale.email,
+        "CPF": sale.cpf || "N/A",
+        "Data Nasc.": sale.data_nascimento ? formatCalendarDate(sale.data_nascimento) : "N/A",
+        "Valor da Venda (R$)": sale.valor,
+        "Data da Venda": formatCalendarDate(sale.data)
+      }));
 
       // Criação do Livro e Abas
       const wb = XLSX.utils.book_new();
@@ -289,14 +282,8 @@ function KanbanContent() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Cálculo de Faturamento Total no Período
-  const totalRevenue = Object.values(boardData).flat().reduce((acc: number, lead: any) => {
-    const periodSales = lead.sales?.filter((s: any) => {
-      const d = parseSafeDate(s.data);
-      return d.getMonth() === selectedMonth && d.getFullYear() === selectedYear;
-    }) || [];
-    return acc + periodSales.reduce((sum: number, s: any) => sum + s.valor, 0);
-  }, 0);
+  // Faturamento do período: soma das vendas do mês (GET /leads?view=sales), não dos cards do quadro
+  const totalRevenue = monthSales.reduce((sum, s) => sum + s.valor, 0);
 
   // Refs para rastrear mudanças e otimizar fetches
   const prevTenantId = useRef<string | null>(null);
@@ -310,6 +297,23 @@ function KanbanContent() {
     const silent = typeof statusListOrSilent === 'boolean' ? statusListOrSilent : silentParam;
 
     if (!silent) setLoading(true);
+
+    // Faturamento: busca independente do quadro — uma falha aqui não derruba as colunas (RF-11)
+    const requestId = ++salesRequestId.current;
+    const month = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}`;
+    LeadService.listSalesByMonth(month, activeTenantId)
+      .then((sales) => {
+        if (requestId !== salesRequestId.current) return;
+        setMonthSales(sales || []);
+        setSalesError(false);
+      })
+      .catch((err) => {
+        console.error(err);
+        if (requestId !== salesRequestId.current) return;
+        setMonthSales([]);
+        setSalesError(true);
+      });
+
     try {
       // Perdido: data da perda é um instante real, então usa os limites locais do navegador.
       const start = new Date(selectedYear, selectedMonth, 1).toISOString();
@@ -586,7 +590,7 @@ function KanbanContent() {
           </div>
           <div className="flex items-center gap-2 bg-green-50 border border-green-100 px-3 py-2 rounded-lg ml-2">
             <span className="text-[10px] font-bold text-green-700 uppercase">Faturamento</span>
-            <span className="text-sm font-black text-green-700 font-mono">{showRevenue ? formatCurrency(totalRevenue) : "R$ ••••••"}</span>
+            <span className="text-sm font-black text-green-700 font-mono">{salesError ? "Indisponível" : showRevenue ? formatCurrency(totalRevenue) : "R$ ••••••"}</span>
             <button onClick={() => setShowRevenue(!showRevenue)} className="text-green-600">{showRevenue ? <EyeOff size={14} /> : <Eye size={14} />}</button>
           </div>
 
@@ -605,7 +609,7 @@ function KanbanContent() {
         <div className="flex md:hidden items-center gap-2">
           <div className="flex items-center gap-2 bg-green-50 border border-green-100 px-2.5 py-1.5 rounded-xl shadow-sm">
             <span className="text-[10px] font-black text-green-700 font-mono">
-              {showRevenue ? formatCurrency(totalRevenue) : "R$ •••"}
+              {salesError ? "Indisponível" : showRevenue ? formatCurrency(totalRevenue) : "R$ •••"}
             </span>
             <button 
               onClick={() => setShowRevenue(!showRevenue)} 

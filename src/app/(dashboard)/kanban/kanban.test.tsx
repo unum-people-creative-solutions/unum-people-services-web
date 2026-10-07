@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import KanbanPage from './page';
 import { LeadService, TenantService } from '@/services/api';
+import type { MonthSale } from '@/services/api';
 import { useAuthStore } from '@/store/authStore';
 import { useTenant } from '@/contexts/TenantContext';
 
@@ -22,6 +23,7 @@ vi.mock('@/services/api', () => ({
     searchCustomers: vi.fn(),
     addSale: vi.fn(),
     delete: vi.fn(),
+    listSalesByMonth: vi.fn(),
   },
   TenantService: {
     list: vi.fn(),
@@ -60,6 +62,22 @@ describe('KanbanPage', () => {
 
   const mockTenants = [{ id: 'tenant-1', nome_negocio: 'Unum Teste' }];
 
+  // Fixtures tipadas pelo contrato real (RF-07) — "Maldição dos Mocks".
+  const makeSale = (overrides: Partial<MonthSale>): MonthSale => ({
+    lead_id: 'lead-2',
+    nome: 'Maria Souza',
+    email: 'maria@test.com',
+    telefone: '11966665555',
+    cpf: '',
+    data_nascimento: '',
+    origem: 'Indicação',
+    status: 'GANHO',
+    sale_id: 'sale-1',
+    valor: 1000,
+    data: '2026-09-10',
+    ...overrides,
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     (useAuthStore as any).mockReturnValue({
@@ -79,6 +97,7 @@ describe('KanbanPage', () => {
     (LeadService.list as any).mockImplementation((status: string) => {
       return Promise.resolve(mockLeads.filter(l => l.status === status));
     });
+    (LeadService.listSalesByMonth as any).mockResolvedValue([makeSale({})]);
   });
 
   it('deve renderizar as colunas do Kanban e carregar os leads', async () => {
@@ -191,20 +210,18 @@ describe('KanbanPage', () => {
 
     it('T10/CA-04 — a exportação mostra a venda do dia 1 e a data de nascimento sem deslocar um dia', async () => {
       fixTime(new Date(2026, 8, 15, 12, 0));
-      const leadComVenda = {
-        id: 'lead-9',
-        nome: 'Ana Lima',
-        email: 'ana@test.com',
-        telefone: '11977776666',
-        cpf: '12345678900',
-        data_nascimento: '1990-05-12',
-        origem: 'Indicação',
-        status: 'GANHO',
-        sales: [{ valor: 500, data: '2026-09-01T00:00:00Z' }],
-      };
-      (LeadService.list as any).mockImplementation((status: string) =>
-        Promise.resolve(status === 'GANHO' ? [leadComVenda] : [])
-      );
+      (LeadService.listSalesByMonth as any).mockResolvedValue([
+        makeSale({
+          lead_id: 'lead-9',
+          nome: 'Ana Lima',
+          email: 'ana@test.com',
+          telefone: '11977776666',
+          cpf: '12345678900',
+          data_nascimento: '1990-05-12',
+          valor: 500,
+          data: '2026-09-01',
+        }),
+      ]);
       const user = userEvent.setup();
       render(<KanbanPage />);
       await waitFor(() => expect(screen.queryByText(/Sincronizando/i)).not.toBeInTheDocument());
@@ -288,6 +305,117 @@ describe('KanbanPage', () => {
 
       expect(LeadService.updateStatus).toHaveBeenCalledTimes(1);
       expect(screen.getByRole('button', { name: /confirmar venda/i })).toBeDisabled();
+    });
+  });
+
+  describe('Faturamento e exportação pelas vendas do mês (T13 — CA-10)', () => {
+    const vendasDoMes: MonthSale[] = [
+      makeSale({ lead_id: 'lead-2', nome: 'Maria Souza', sale_id: 's1', valor: 1000, data: '2026-09-02' }),
+      makeSale({ lead_id: 'lead-2', nome: 'Maria Souza', sale_id: 's2', valor: 200, data: '2026-09-20' }),
+      makeSale({
+        lead_id: 'lead-perdido',
+        nome: 'Pedro Perdido',
+        email: 'pedro@test.com',
+        status: 'PERDIDO',
+        sale_id: 's3',
+        valor: 300,
+        data: '2026-09-05',
+      }),
+    ];
+
+    const revealRevenue = async (user: ReturnType<typeof userEvent.setup>) => {
+      const eyeButtons = screen.getAllByRole('button').filter(b => b.querySelector('svg.lucide-eye'));
+      await user.click(eyeButtons[0]);
+    };
+
+    it('pede as vendas do mês selecionado com o tenant ativo e as recarrega ao trocar o mês', async () => {
+      const user = userEvent.setup();
+      render(<KanbanPage />);
+      const now = new Date();
+      const monthKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      await waitFor(() =>
+        expect(LeadService.listSalesByMonth).toHaveBeenCalledWith(monthKey(now), 'tenant-1')
+      );
+
+      await user.selectOptions(screen.getAllByRole('combobox')[0], 'Dez');
+      await user.selectOptions(screen.getAllByRole('combobox')[1], '2027');
+
+      await waitFor(() =>
+        expect(LeadService.listSalesByMonth).toHaveBeenCalledWith('2027-12', 'tenant-1')
+      );
+    });
+
+    it('o cabeçalho soma as vendas do mês, inclusive a de um lead Perdido que não está no quadro', async () => {
+      (LeadService.listSalesByMonth as any).mockResolvedValue(vendasDoMes);
+      (LeadService.list as any).mockImplementation((status: string) =>
+        Promise.resolve(status === 'NOVO' ? [mockLeads[0]] : [])
+      );
+      const user = userEvent.setup();
+      render(<KanbanPage />);
+      await waitFor(() => expect(screen.queryByText(/Sincronizando/i)).not.toBeInTheDocument());
+
+      await revealRevenue(user);
+
+      expect((await screen.findAllByText(/R\$.*1\.500,00/)).length).toBeGreaterThan(0);
+    });
+
+    it('a exportação tem o mesmo total do cabeçalho, uma linha por lead no resumo e uma por venda no detalhe', async () => {
+      (LeadService.listSalesByMonth as any).mockResolvedValue(vendasDoMes);
+      (LeadService.list as any).mockImplementation(() => Promise.resolve([]));
+      const user = userEvent.setup();
+      render(<KanbanPage />);
+      await waitFor(() => expect(LeadService.listSalesByMonth).toHaveBeenCalled());
+      await waitFor(() => expect(screen.queryByText(/Sincronizando/i)).not.toBeInTheDocument());
+
+      await user.click(screen.getByTitle(/Exportar Relatório/i));
+
+      const XLSX = await import('xlsx');
+      const sheets = (XLSX.utils.json_to_sheet as any).mock.calls.map((c: any[]) => c[0]);
+      const [summary, detailed] = sheets;
+      expect(summary).toEqual([
+        expect.objectContaining({ 'Nome do Cliente': 'Maria Souza', 'Qtd. Vendas': 2, 'Total de Vendas (R$)': 1200 }),
+        expect.objectContaining({ 'Nome do Cliente': 'Pedro Perdido', 'Qtd. Vendas': 1, 'Total de Vendas (R$)': 300 }),
+        expect.objectContaining({ 'Nome do Cliente': 'TOTAL GERAL', 'Total de Vendas (R$)': 1500 }),
+      ]);
+      expect(detailed).toHaveLength(3);
+      expect(XLSX.writeFile).toHaveBeenCalled();
+    });
+
+    it('sem vendas no mês, a exportação avisa que não há vendas', async () => {
+      const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+      (LeadService.listSalesByMonth as any).mockResolvedValue([]);
+      const user = userEvent.setup();
+      render(<KanbanPage />);
+      await waitFor(() => expect(screen.queryByText(/Sincronizando/i)).not.toBeInTheDocument());
+
+      await user.click(screen.getByTitle(/Exportar Relatório/i));
+
+      expect(alertSpy).toHaveBeenCalledWith('Nenhuma venda encontrada no período selecionado.');
+      const { writeFile } = await import('xlsx');
+      expect(writeFile).not.toHaveBeenCalled();
+      alertSpy.mockRestore();
+    });
+
+    it('com a busca das vendas falhando, mostra Indisponível, alerta na exportação e mantém o quadro', async () => {
+      const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      (LeadService.listSalesByMonth as any).mockRejectedValue(new Error('boom'));
+      const user = userEvent.setup();
+      render(<KanbanPage />);
+      await waitFor(() => expect(screen.queryByText(/Sincronizando/i)).not.toBeInTheDocument());
+
+      expect((await screen.findAllByText('Indisponível')).length).toBeGreaterThan(0);
+      expect(screen.getByText('João Silva')).toBeInTheDocument();
+
+      await user.click(screen.getByTitle(/Exportar Relatório/i));
+
+      expect(alertSpy).toHaveBeenCalledWith(
+        'Não foi possível carregar as vendas do mês. Atualize e tente de novo.'
+      );
+      const { writeFile } = await import('xlsx');
+      expect(writeFile).not.toHaveBeenCalled();
+      alertSpy.mockRestore();
+      errorSpy.mockRestore();
     });
   });
 
