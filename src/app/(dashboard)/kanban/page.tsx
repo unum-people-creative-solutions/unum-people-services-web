@@ -142,6 +142,9 @@ function KanbanContent() {
   const [saleValueMasked, setSaleValueMasked] = useState("");
   const [saleDate, setSaleDate] = useState(todayLocalISODate());
   const [pendingMove, setPendingMove] = useState<any>(null);
+  // Trava de clique duplo em "Confirmar Venda" (a ref bloqueia reenvios antes do re-render)
+  const [isSubmittingSale, setIsSubmittingSale] = useState(false);
+  const submittingSaleRef = useRef(false);
 
   // Forms
   const createLeadForm = useForm<LeadFormValues>({
@@ -466,7 +469,9 @@ function KanbanContent() {
 
   const handleAddManualSale = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedCustomer) return;
+    if (!selectedCustomer || submittingSaleRef.current) return;
+    submittingSaleRef.current = true;
+    setIsSubmittingSale(true);
     try {
       const rawValue = unmaskCurrency(saleValueMasked);
       await LeadService.addSale(selectedCustomer.id, rawValue, saleDate, activeTenantId);
@@ -475,7 +480,12 @@ function KanbanContent() {
       setSaleValueMasked("");
       setSaleDate(todayLocalISODate());
       loadLeads(true);
-    } catch (err) { alert("Falha ao registrar venda"); }
+    } catch (err) {
+      alert("Falha ao registrar venda");
+    } finally {
+      submittingSaleRef.current = false;
+      setIsSubmittingSale(false);
+    }
   };
 
   const executeMove = async (draggableId: string, destinationId: string, valor = 0, dataVenda?: string) => {
@@ -492,13 +502,20 @@ function KanbanContent() {
 
   const confirmSale = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!pendingMove) return;
-    const rawValue = unmaskCurrency(saleValueMasked);
-    await executeMove(pendingMove.draggableId, pendingMove.destinationId, rawValue, saleDate);
-    setIsSaleModalOpen(false);
-    setSaleValueMasked("");
-    setSaleDate(todayLocalISODate());
-    setPendingMove(null);
+    if (!pendingMove || submittingSaleRef.current) return;
+    submittingSaleRef.current = true;
+    setIsSubmittingSale(true);
+    try {
+      const rawValue = unmaskCurrency(saleValueMasked);
+      await executeMove(pendingMove.draggableId, pendingMove.destinationId, rawValue, saleDate);
+      setIsSaleModalOpen(false);
+      setSaleValueMasked("");
+      setSaleDate(todayLocalISODate());
+      setPendingMove(null);
+    } finally {
+      submittingSaleRef.current = false;
+      setIsSubmittingSale(false);
+    }
   };
 
   const confirmBackwardsMove = async () => {
@@ -956,7 +973,7 @@ function KanbanContent() {
                       <label htmlFor="new-sale-date" className="block text-sm font-bold text-gray-700 mb-2">Data da Venda</label>
                       <input id="new-sale-date" type="date" required value={saleDate} onChange={(e) => setSaleDate(e.target.value)} className="w-full border p-3 rounded-md outline-none focus:ring-2 focus:ring-green-500 font-bold text-gray-700" />
                     </div>
-                    <button type="submit" className="w-full bg-green-600 text-white p-4 rounded-md font-bold hover:bg-green-700 shadow-lg transition-all">Confirmar Venda</button>
+                    <button type="submit" disabled={isSubmittingSale} className="w-full bg-green-600 text-white p-4 rounded-md font-bold hover:bg-green-700 shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed">Confirmar Venda</button>
                   </form>
                 )}
               </div>
@@ -1176,7 +1193,7 @@ function KanbanContent() {
                     <label htmlFor="move-sale-date" className="block text-xs font-bold text-gray-400 uppercase mb-1">Data da Venda</label>
                     <input id="move-sale-date" type="date" required value={saleDate} onChange={(e) => setSaleDate(e.target.value)} className="w-full border p-3 rounded-md outline-none focus:ring-2 focus:ring-green-500 font-bold text-gray-700" />
                   </div>
-                  <button type="submit" className="w-full bg-green-600 text-white p-4 rounded-md font-bold hover:bg-green-700 transition-all">Confirmar Venda</button>
+                  <button type="submit" disabled={isSubmittingSale} className="w-full bg-green-600 text-white p-4 rounded-md font-bold hover:bg-green-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed">Confirmar Venda</button>
                   <button type="button" onClick={() => { setIsSaleModalOpen(false); setPendingMove(null); loadLeads(true); }} className="w-full bg-gray-100 p-2 mt-2 rounded font-bold text-gray-500 text-xs">Cancelar movimento</button>
                 </form>
               </div>

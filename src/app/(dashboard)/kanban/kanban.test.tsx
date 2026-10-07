@@ -225,6 +225,72 @@ describe('KanbanPage', () => {
     });
   });
 
+  describe('Trava de clique duplo em Confirmar Venda (T11 — CA-07)', () => {
+    const pending = () => new Promise(() => {});
+
+    it('Nova Venda: o clique duplo envia uma única requisição e desabilita o botão', async () => {
+      (LeadService.searchCustomers as any).mockResolvedValue([
+        { id: 'lead-2', nome: 'Maria Souza', telefone: '11966665555', status: 'GANHO' },
+      ]);
+      (LeadService.addSale as any).mockImplementation(pending);
+      const user = userEvent.setup();
+      render(<KanbanPage />);
+      await waitFor(() => expect(screen.queryByText(/Sincronizando/i)).not.toBeInTheDocument());
+
+      await user.click(screen.getByRole('button', { name: /Menu Principal/i }));
+      await user.click(screen.getAllByText('Registrar Nova Venda')[0]);
+      await user.type(screen.getByPlaceholderText(/Pesquisar cliente/i), 'ma');
+      await user.click(await screen.findByRole('button', { name: /Maria Souza/i }));
+      await user.type(screen.getByPlaceholderText('0,00'), '10000');
+
+      await user.dblClick(screen.getByRole('button', { name: /confirmar venda/i }));
+
+      expect(LeadService.addSale).toHaveBeenCalledTimes(1);
+      expect(screen.getByRole('button', { name: /confirmar venda/i })).toBeDisabled();
+    });
+
+    it('Nova Venda: uma falha mostra o alerta e libera o botão', async () => {
+      const alertSpy = vi.spyOn(window, 'alert').mockImplementation(() => {});
+      (LeadService.searchCustomers as any).mockResolvedValue([
+        { id: 'lead-2', nome: 'Maria Souza', telefone: '11966665555', status: 'GANHO' },
+      ]);
+      (LeadService.addSale as any).mockRejectedValue(new Error('boom'));
+      const user = userEvent.setup();
+      render(<KanbanPage />);
+      await waitFor(() => expect(screen.queryByText(/Sincronizando/i)).not.toBeInTheDocument());
+
+      await user.click(screen.getByRole('button', { name: /Menu Principal/i }));
+      await user.click(screen.getAllByText('Registrar Nova Venda')[0]);
+      await user.type(screen.getByPlaceholderText(/Pesquisar cliente/i), 'ma');
+      await user.click(await screen.findByRole('button', { name: /Maria Souza/i }));
+      await user.type(screen.getByPlaceholderText('0,00'), '10000');
+
+      await user.click(screen.getByRole('button', { name: /confirmar venda/i }));
+
+      await waitFor(() => expect(alertSpy).toHaveBeenCalledWith('Falha ao registrar venda'));
+      expect(screen.getByRole('button', { name: /confirmar venda/i })).toBeEnabled();
+      alertSpy.mockRestore();
+    });
+
+    it('Mover para Ganho: o clique duplo chama updateStatus uma única vez e desabilita o botão', async () => {
+      (LeadService.updateStatus as any).mockImplementation(pending);
+      const user = userEvent.setup();
+      const { container } = render(<KanbanPage />);
+      await waitFor(() => expect(screen.queryByText(/Sincronizando/i)).not.toBeInTheDocument());
+
+      const quickMove = container.querySelector('svg.lucide-arrow-right-left')?.closest('button');
+      expect(quickMove).not.toBeNull();
+      await user.click(quickMove as HTMLElement);
+      await user.click(screen.getByRole('button', { name: /Ganho \(Conversão\)/i }));
+      await user.type(screen.getByPlaceholderText('0,00'), '10000');
+
+      await user.dblClick(screen.getByRole('button', { name: /confirmar venda/i }));
+
+      expect(LeadService.updateStatus).toHaveBeenCalledTimes(1);
+      expect(screen.getByRole('button', { name: /confirmar venda/i })).toBeDisabled();
+    });
+  });
+
   // T-04.1/T-04.2 (TenantService.list vs listMyTenants) e T-05.1-3 (inquilinos
   // bloqueados: ordenação, desabilitação e badge) foram relocados para
   // TenantContext.test.tsx (lógica de carregamento/ordenação/switchTenant) e
