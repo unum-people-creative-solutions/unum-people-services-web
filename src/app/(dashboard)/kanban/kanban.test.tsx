@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { render, screen, waitFor, within, fireEvent, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import KanbanPage from './page';
@@ -308,6 +308,103 @@ describe('KanbanPage', () => {
     });
   });
 
+  describe('Reuso e guarda síncrona de Confirmar Venda (T11 — CA-07)', () => {
+    const searchResult = { id: 'lead-2', nome: 'Maria Souza', telefone: '11966665555', status: 'GANHO' };
+
+    const registerNewSale = async (user: ReturnType<typeof userEvent.setup>) => {
+      await user.click(screen.getByRole('button', { name: /Menu Principal/i }));
+      await user.click(screen.getAllByText('Registrar Nova Venda')[0]);
+      await user.type(screen.getByPlaceholderText(/Pesquisar cliente/i), 'ma');
+      await user.click(await screen.findByRole('button', { name: /Maria Souza/i }));
+      await user.type(screen.getByPlaceholderText('0,00'), '10000');
+    };
+
+    const openMoveToGanho = async (
+      user: ReturnType<typeof userEvent.setup>,
+      container: HTMLElement
+    ) => {
+      const quickMove = container.querySelector('svg.lucide-arrow-right-left')?.closest('button');
+      expect(quickMove).not.toBeNull();
+      await user.click(quickMove as HTMLElement);
+      await user.click(screen.getByRole('button', { name: /Ganho \(Conversão\)/i }));
+      await user.type(screen.getByPlaceholderText('0,00'), '10000');
+    };
+
+    it('Nova Venda: depois de uma venda com sucesso, o botão volta habilitado e uma segunda venda é enviada', async () => {
+      (LeadService.searchCustomers as any).mockResolvedValue([searchResult]);
+      (LeadService.addSale as any).mockResolvedValue({});
+      const user = userEvent.setup();
+      render(<KanbanPage />);
+      await waitFor(() => expect(screen.queryByText(/Sincronizando/i)).not.toBeInTheDocument());
+
+      await registerNewSale(user);
+      await user.click(screen.getByRole('button', { name: /confirmar venda/i }));
+      await waitFor(() => expect(LeadService.addSale).toHaveBeenCalledTimes(1));
+      await waitFor(() =>
+        expect(screen.queryByRole('button', { name: /confirmar venda/i })).not.toBeInTheDocument()
+      );
+
+      await registerNewSale(user);
+      expect(screen.getByRole('button', { name: /confirmar venda/i })).toBeEnabled();
+      await user.click(screen.getByRole('button', { name: /confirmar venda/i }));
+
+      await waitFor(() => expect(LeadService.addSale).toHaveBeenCalledTimes(2));
+    });
+
+    it('Mover para Ganho: depois de uma venda com sucesso, o botão volta habilitado e uma segunda venda é enviada', async () => {
+      (LeadService.updateStatus as any).mockResolvedValue({});
+      const user = userEvent.setup();
+      const { container } = render(<KanbanPage />);
+      await waitFor(() => expect(screen.queryByText(/Sincronizando/i)).not.toBeInTheDocument());
+
+      await openMoveToGanho(user, container);
+      await user.click(screen.getByRole('button', { name: /confirmar venda/i }));
+      await waitFor(() => expect(LeadService.updateStatus).toHaveBeenCalledTimes(1));
+      await waitFor(() =>
+        expect(screen.queryByRole('button', { name: /confirmar venda/i })).not.toBeInTheDocument()
+      );
+
+      await openMoveToGanho(user, container);
+      expect(screen.getByRole('button', { name: /confirmar venda/i })).toBeEnabled();
+      await user.click(screen.getByRole('button', { name: /confirmar venda/i }));
+
+      await waitFor(() => expect(LeadService.updateStatus).toHaveBeenCalledTimes(2));
+    });
+
+    it('Nova Venda: dois submits no mesmo tick (sem re-render) enviam uma única requisição', async () => {
+      (LeadService.searchCustomers as any).mockResolvedValue([searchResult]);
+      (LeadService.addSale as any).mockImplementation(() => new Promise(() => {}));
+      const user = userEvent.setup();
+      render(<KanbanPage />);
+      await waitFor(() => expect(screen.queryByText(/Sincronizando/i)).not.toBeInTheDocument());
+      await registerNewSale(user);
+
+      const form = screen.getByRole('button', { name: /confirmar venda/i }).closest('form') as HTMLFormElement;
+      act(() => {
+        fireEvent.submit(form);
+        fireEvent.submit(form);
+      });
+
+      expect(LeadService.addSale).toHaveBeenCalledTimes(1);
+    });
+
+    it('Mover para Ganho: dois submits no mesmo tick (sem re-render) chamam updateStatus uma única vez', async () => {
+      (LeadService.updateStatus as any).mockImplementation(() => new Promise(() => {}));
+      const user = userEvent.setup();
+      const { container } = render(<KanbanPage />);
+      await waitFor(() => expect(screen.queryByText(/Sincronizando/i)).not.toBeInTheDocument());
+      await openMoveToGanho(user, container);
+
+      const form = screen.getByRole('button', { name: /confirmar venda/i }).closest('form') as HTMLFormElement;
+      act(() => {
+        fireEvent.submit(form);
+        fireEvent.submit(form);
+      });
+
+      expect(LeadService.updateStatus).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe('Faturamento e exportação pelas vendas do mês (T13 — CA-10)', () => {
     const vendasDoMes: MonthSale[] = [
       makeSale({ lead_id: 'lead-2', nome: 'Maria Souza', sale_id: 's1', valor: 1000, data: '2026-09-02' }),
@@ -404,7 +501,8 @@ describe('KanbanPage', () => {
       render(<KanbanPage />);
       await waitFor(() => expect(screen.queryByText(/Sincronizando/i)).not.toBeInTheDocument());
 
-      expect((await screen.findAllByText('Indisponível')).length).toBeGreaterThan(0);
+      // Cabeçalho desktop e cabeçalho mobile mostram o aviso (2 lugares).
+      await waitFor(() => expect(screen.getAllByText('Indisponível')).toHaveLength(2));
       expect(screen.getByText('João Silva')).toBeInTheDocument();
 
       await user.click(screen.getByTitle(/Exportar Relatório/i));
