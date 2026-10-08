@@ -6,7 +6,7 @@ export const getGoogleAdsAuthUrl = (state: string) => {
   const params = new URLSearchParams({
     client_id: clientId || "",
     response_type: "code",
-    scope: "https://www.googleapis.com/auth/adwords",
+    scope: "https://www.googleapis.com/auth/datamanager",
     access_type: "offline",
     prompt: "consent",
     redirect_uri: redirectUri,
