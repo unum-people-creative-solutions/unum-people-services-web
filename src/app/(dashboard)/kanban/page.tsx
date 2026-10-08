@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef, Suspense, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
-import api, { LeadService, TenantService, LeadData } from "@/services/api";
+import api, { LeadService, TenantService, LeadData, MonthSale } from "@/services/api";
 import { useAuthStore } from "@/store/authStore";
 import { useTenant } from "@/contexts/TenantContext";
 import { Plus, X, LogOut, Settings, DollarSign, AlertCircle, Calendar, Eye, EyeOff, Users, Edit2, Mail, Phone, User, Search, TrendingUp, RefreshCw, HelpCircle, Tag, ExternalLink, LayoutGrid, ArrowRightLeft, MessageCircle, Clock, Trash2, AlertTriangle } from "lucide-react";
@@ -17,6 +17,7 @@ import * as XLSX from "xlsx";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { leadSchema } from "@/lib/validations";
+import { ganhoRange, todayLocalISODate, formatCalendarDate } from "@/lib/dates";
 import { Input } from "@/components/ui/Input";
 import { PhoneInput } from "@/components/ui/PhoneInput";
 import { CPFInput } from "@/components/ui/CPFInput";
@@ -136,11 +137,19 @@ function KanbanContent() {
   const [deleteConfirmationText, setDeleteConfirmText] = useState("");
   
   const [showRevenue, setShowRevenue] = useState(false);
+
+  // Vendas do mês selecionado (fonte do Faturamento e da exportação — RF-09/RF-10)
+  const [monthSales, setMonthSales] = useState<MonthSale[]>([]);
+  const [salesError, setSalesError] = useState(false);
+  const salesRequestId = useRef(0);
   
   const [quickMoveLead, setQuickMoveLead] = useState<any>(null);
   const [saleValueMasked, setSaleValueMasked] = useState("");
-  const [saleDate, setSaleDate] = useState(new Date().toISOString().split('T')[0]);
+  const [saleDate, setSaleDate] = useState(todayLocalISODate());
   const [pendingMove, setPendingMove] = useState<any>(null);
+  // Trava de clique duplo em "Confirmar Venda" (a ref bloqueia reenvios antes do re-render)
+  const [isSubmittingSale, setIsSubmittingSale] = useState(false);
+  const submittingSaleRef = useRef(false);
 
   // Forms
   const createLeadForm = useForm<LeadFormValues>({
@@ -176,48 +185,46 @@ function KanbanContent() {
 
   // Função para exportar Excel de vendas e leads
   const handleExportSales = () => {
+    if (salesError) {
+      alert("Não foi possível carregar as vendas do mês. Atualize e tente de novo.");
+      return;
+    }
+
     setIsExporting(true);
     try {
-      const salesLeads = boardData["GANHO"] || [];
-      
-      if (salesLeads.length === 0) {
+      if (monthSales.length === 0) {
         alert("Nenhuma venda encontrada no período selecionado.");
         setIsExporting(false);
         return;
       }
 
-      // 1. DADOS PARA A ABA DE RESUMO (Primeira Aba)
+      // 1. DADOS PARA A ABA DE RESUMO (Primeira Aba): uma linha por lead_id
+      const salesByLead = new Map<string, MonthSale[]>();
+      monthSales.forEach((sale) => {
+        const list = salesByLead.get(sale.lead_id);
+        if (list) list.push(sale);
+        else salesByLead.set(sale.lead_id, [sale]);
+      });
+
       const summaryData: any[] = [];
       let grandTotal = 0;
 
-      salesLeads.forEach((lead: any) => {
-        const periodSales = (lead.sales || []).filter((s: any) => {
-          const d = parseSafeDate(s.data);
-          return d.getMonth() === selectedMonth && d.getFullYear() === selectedYear;
+      salesByLead.forEach((leadSales) => {
+        const lead = leadSales[0];
+        const totalLeadSales = leadSales.reduce((sum, s) => sum + s.valor, 0);
+        grandTotal += totalLeadSales;
+
+        summaryData.push({
+          "Nome do Cliente": lead.nome,
+          "E-mail": lead.email,
+          "Telefone": lead.telefone || "N/A",
+          "CPF": lead.cpf || "N/A",
+          "Data Nasc.": lead.data_nascimento ? formatCalendarDate(lead.data_nascimento) : "N/A",
+          "Origem": lead.origem,
+          "Qtd. Vendas": leadSales.length,
+          "Total de Vendas (R$)": totalLeadSales
         });
-
-        if (periodSales.length > 0) {
-          const totalLeadSales = periodSales.reduce((sum: number, s: any) => sum + s.valor, 0);
-          grandTotal += totalLeadSales;
-
-          summaryData.push({
-            "Nome do Cliente": lead.nome,
-            "E-mail": lead.email,
-            "Telefone": lead.telefone || "N/A",
-            "CPF": lead.cpf || "N/A",
-            "Data Nasc.": lead.data_nascimento ? new Date(lead.data_nascimento).toLocaleDateString('pt-BR') : "N/A",
-            "Origem": lead.origem,
-            "Qtd. Vendas": periodSales.length,
-            "Total de Vendas (R$)": totalLeadSales
-          });
-        }
       });
-
-      if (summaryData.length === 0) {
-        alert("Nenhuma venda encontrada no período selecionado.");
-        setIsExporting(false);
-        return;
-      }
 
       // Adiciona linha de TOTAL no Resumo
       summaryData.push({
@@ -231,25 +238,15 @@ function KanbanContent() {
         "Total de Vendas (R$)": grandTotal
       });
 
-      // 2. DADOS PARA A ABA DE VENDAS DETALHADAS (Segunda Aba)
-      const detailedData: any[] = [];
-      salesLeads.forEach((lead: any) => {
-        const periodSales = (lead.sales || []).filter((s: any) => {
-          const d = parseSafeDate(s.data);
-          return d.getMonth() === selectedMonth && d.getFullYear() === selectedYear;
-        });
-
-        periodSales.forEach((sale: any) => {
-          detailedData.push({
-            "Nome do Cliente": lead.nome,
-            "E-mail": lead.email,
-            "CPF": lead.cpf || "N/A",
-            "Data Nasc.": lead.data_nascimento ? new Date(lead.data_nascimento).toLocaleDateString('pt-BR') : "N/A",
-            "Valor da Venda (R$)": sale.valor,
-            "Data da Venda": new Date(sale.data).toLocaleDateString('pt-BR')
-          });
-        });
-      });
+      // 2. DADOS PARA A ABA DE VENDAS DETALHADAS (Segunda Aba): uma linha por venda
+      const detailedData: any[] = monthSales.map((sale) => ({
+        "Nome do Cliente": sale.nome,
+        "E-mail": sale.email,
+        "CPF": sale.cpf || "N/A",
+        "Data Nasc.": sale.data_nascimento ? formatCalendarDate(sale.data_nascimento) : "N/A",
+        "Valor da Venda (R$)": sale.valor,
+        "Data da Venda": formatCalendarDate(sale.data)
+      }));
 
       // Criação do Livro e Abas
       const wb = XLSX.utils.book_new();
@@ -285,14 +282,8 @@ function KanbanContent() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Cálculo de Faturamento Total no Período
-  const totalRevenue = Object.values(boardData).flat().reduce((acc: number, lead: any) => {
-    const periodSales = lead.sales?.filter((s: any) => {
-      const d = parseSafeDate(s.data);
-      return d.getMonth() === selectedMonth && d.getFullYear() === selectedYear;
-    }) || [];
-    return acc + periodSales.reduce((sum: number, s: any) => sum + s.valor, 0);
-  }, 0);
+  // Faturamento do período: soma das vendas do mês (GET /leads?view=sales), não dos cards do quadro
+  const totalRevenue = monthSales.reduce((sum, s) => sum + s.valor, 0);
 
   // Refs para rastrear mudanças e otimizar fetches
   const prevTenantId = useRef<string | null>(null);
@@ -306,17 +297,38 @@ function KanbanContent() {
     const silent = typeof statusListOrSilent === 'boolean' ? statusListOrSilent : silentParam;
 
     if (!silent) setLoading(true);
+
+    // Faturamento: busca independente do quadro — uma falha aqui não derruba as colunas (RF-11)
+    const requestId = ++salesRequestId.current;
+    const month = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}`;
+    LeadService.listSalesByMonth(month, activeTenantId)
+      .then((sales) => {
+        if (requestId !== salesRequestId.current) return;
+        setMonthSales(sales || []);
+        setSalesError(false);
+      })
+      .catch((err) => {
+        console.error(err);
+        if (requestId !== salesRequestId.current) return;
+        setMonthSales([]);
+        setSalesError(true);
+      });
+
     try {
+      // Perdido: data da perda é um instante real, então usa os limites locais do navegador.
       const start = new Date(selectedYear, selectedMonth, 1).toISOString();
       const end = new Date(selectedYear, selectedMonth + 1, 0, 23, 59, 59).toISOString();
+      // Ganho: data da venda é um dia de calendário (meia-noite UTC), então usa limites UTC.
+      const ganho = ganhoRange(selectedYear, selectedMonth);
       
       const results: any = {};
       await Promise.all(statusList.map(async (status) => {
         const isFiltered = status === "GANHO" || status === "PERDIDO";
+        const range = status === "GANHO" ? { start: ganho.start, end: ganho.end } : { start, end };
         const data = await LeadService.list(
           status, 
-          isFiltered ? start : undefined, 
-          isFiltered ? end : undefined, 
+          isFiltered ? range.start : undefined, 
+          isFiltered ? range.end : undefined, 
           activeTenantId
         );
         results[status] = data || [];
@@ -461,16 +473,23 @@ function KanbanContent() {
 
   const handleAddManualSale = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedCustomer) return;
+    if (!selectedCustomer || submittingSaleRef.current) return;
+    submittingSaleRef.current = true;
+    setIsSubmittingSale(true);
     try {
       const rawValue = unmaskCurrency(saleValueMasked);
       await LeadService.addSale(selectedCustomer.id, rawValue, saleDate, activeTenantId);
       setIsNewSaleModalOpen(false);
       setSelectedCustomer(null);
       setSaleValueMasked("");
-      setSaleDate(new Date().toISOString().split('T')[0]);
+      setSaleDate(todayLocalISODate());
       loadLeads(true);
-    } catch (err) { alert("Falha ao registrar venda"); }
+    } catch (err) {
+      alert("Falha ao registrar venda");
+    } finally {
+      submittingSaleRef.current = false;
+      setIsSubmittingSale(false);
+    }
   };
 
   const executeMove = async (draggableId: string, destinationId: string, valor = 0, dataVenda?: string) => {
@@ -487,13 +506,20 @@ function KanbanContent() {
 
   const confirmSale = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!pendingMove) return;
-    const rawValue = unmaskCurrency(saleValueMasked);
-    await executeMove(pendingMove.draggableId, pendingMove.destinationId, rawValue, saleDate);
-    setIsSaleModalOpen(false);
-    setSaleValueMasked("");
-    setSaleDate(new Date().toISOString().split('T')[0]);
-    setPendingMove(null);
+    if (!pendingMove || submittingSaleRef.current) return;
+    submittingSaleRef.current = true;
+    setIsSubmittingSale(true);
+    try {
+      const rawValue = unmaskCurrency(saleValueMasked);
+      await executeMove(pendingMove.draggableId, pendingMove.destinationId, rawValue, saleDate);
+      setIsSaleModalOpen(false);
+      setSaleValueMasked("");
+      setSaleDate(todayLocalISODate());
+      setPendingMove(null);
+    } finally {
+      submittingSaleRef.current = false;
+      setIsSubmittingSale(false);
+    }
   };
 
   const confirmBackwardsMove = async () => {
@@ -564,7 +590,7 @@ function KanbanContent() {
           </div>
           <div className="flex items-center gap-2 bg-green-50 border border-green-100 px-3 py-2 rounded-lg ml-2">
             <span className="text-[10px] font-bold text-green-700 uppercase">Faturamento</span>
-            <span className="text-sm font-black text-green-700 font-mono">{showRevenue ? formatCurrency(totalRevenue) : "R$ ••••••"}</span>
+            <span className="text-sm font-black text-green-700 font-mono">{salesError ? "Indisponível" : showRevenue ? formatCurrency(totalRevenue) : "R$ ••••••"}</span>
             <button onClick={() => setShowRevenue(!showRevenue)} className="text-green-600">{showRevenue ? <EyeOff size={14} /> : <Eye size={14} />}</button>
           </div>
 
@@ -583,7 +609,7 @@ function KanbanContent() {
         <div className="flex md:hidden items-center gap-2">
           <div className="flex items-center gap-2 bg-green-50 border border-green-100 px-2.5 py-1.5 rounded-xl shadow-sm">
             <span className="text-[10px] font-black text-green-700 font-mono">
-              {showRevenue ? formatCurrency(totalRevenue) : "R$ •••"}
+              {salesError ? "Indisponível" : showRevenue ? formatCurrency(totalRevenue) : "R$ •••"}
             </span>
             <button 
               onClick={() => setShowRevenue(!showRevenue)} 
@@ -948,10 +974,10 @@ function KanbanContent() {
                       </div>
                     </div>
                     <div>
-                      <label className="block text-sm font-bold text-gray-700 mb-2">Data da Venda</label>
-                      <input type="date" required value={saleDate} onChange={(e) => setSaleDate(e.target.value)} className="w-full border p-3 rounded-md outline-none focus:ring-2 focus:ring-green-500 font-bold text-gray-700" />
+                      <label htmlFor="new-sale-date" className="block text-sm font-bold text-gray-700 mb-2">Data da Venda</label>
+                      <input id="new-sale-date" type="date" required value={saleDate} onChange={(e) => setSaleDate(e.target.value)} className="w-full border p-3 rounded-md outline-none focus:ring-2 focus:ring-green-500 font-bold text-gray-700" />
                     </div>
-                    <button type="submit" className="w-full bg-green-600 text-white p-4 rounded-md font-bold hover:bg-green-700 shadow-lg transition-all">Confirmar Venda</button>
+                    <button type="submit" disabled={isSubmittingSale} className="w-full bg-green-600 text-white p-4 rounded-md font-bold hover:bg-green-700 shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed">Confirmar Venda</button>
                   </form>
                 )}
               </div>
@@ -1168,10 +1194,10 @@ function KanbanContent() {
                     </div>
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-gray-400 uppercase mb-1">Data da Venda</label>
-                    <input type="date" required value={saleDate} onChange={(e) => setSaleDate(e.target.value)} className="w-full border p-3 rounded-md outline-none focus:ring-2 focus:ring-green-500 font-bold text-gray-700" />
+                    <label htmlFor="move-sale-date" className="block text-xs font-bold text-gray-400 uppercase mb-1">Data da Venda</label>
+                    <input id="move-sale-date" type="date" required value={saleDate} onChange={(e) => setSaleDate(e.target.value)} className="w-full border p-3 rounded-md outline-none focus:ring-2 focus:ring-green-500 font-bold text-gray-700" />
                   </div>
-                  <button type="submit" className="w-full bg-green-600 text-white p-4 rounded-md font-bold hover:bg-green-700 transition-all">Confirmar Venda</button>
+                  <button type="submit" disabled={isSubmittingSale} className="w-full bg-green-600 text-white p-4 rounded-md font-bold hover:bg-green-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed">Confirmar Venda</button>
                   <button type="button" onClick={() => { setIsSaleModalOpen(false); setPendingMove(null); loadLeads(true); }} className="w-full bg-gray-100 p-2 mt-2 rounded font-bold text-gray-500 text-xs">Cancelar movimento</button>
                 </form>
               </div>

@@ -16,8 +16,8 @@ Frontend único em Next.js focado em performance de vendas e atribuição de an�
     - **Nova Venda:** Registro de transações com suporte a **data retroativa da venda** para precisão no faturamento histórico.
     - **LTV (Lifetime Value):** Exibição do faturamento total acumulado do cliente diretamente no card.
     - **Histórico de Vendas:** Modal de edição com lista detalhada e cronológica de todas as transações passadas.
-- **Faturamento Dinâmico:** Filtro inteligente por Mês/Ano que recalcula o faturamento total em tempo real com base nas vendas do período selecionado.
-- **Exportação de Relatórios:** Botão dedicado para gerar relatórios comerciais em formato **Excel (.xlsx)**, incluindo abas de resumo e vendas detalhadas para análise externa.
+- **Faturamento Dinâmico:** Filtro por Mês/Ano que soma as vendas com data no mês selecionado (`GET /leads?view=sales&month=`), qualquer que seja o status atual do lead. A data da venda é um dia de calendário; se a busca falhar, o cabeçalho mostra "Indisponível".
+- **Exportação de Relatórios:** Botão dedicado para gerar relatórios comerciais em formato **Excel (.xlsx)**, com as mesmas vendas do Faturamento, em abas de resumo e vendas detalhadas.
 
 ## 2. Integrações & Marketing
 - **Google Ads OAuth:** Integração nativa para autorização de acesso a contas MCC ou contas de clientes, permitindo captura de leads e automação de conversões.
