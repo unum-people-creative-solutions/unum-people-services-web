@@ -45,6 +45,21 @@ export interface LeadData {
   anotacoes?: string;
 }
 
+// Contrato RF-07: GET /leads?view=sales&month=YYYY-MM (uma venda por elemento; o status do lead não filtra).
+export interface MonthSale {
+  lead_id: string;
+  nome: string;
+  email: string;
+  telefone: string;
+  cpf: string;
+  data_nascimento: string;
+  origem: string;
+  status: string;
+  sale_id: string;
+  valor: number;
+  data: string;
+}
+
 export const LeadService = {
   list: async (status: string, startDate?: string, endDate?: string, tenantId?: string) => {
     const params = new URLSearchParams({ status });
@@ -52,6 +67,13 @@ export const LeadService = {
     if (endDate) params.append('end_date', endDate);
     if (tenantId) params.append('tenant_id', tenantId);
     
+    const response = await api.get(`/leads?${params.toString()}`);
+    return response.data;
+  },
+  listSalesByMonth: async (month: string, tenantId?: string): Promise<MonthSale[]> => {
+    const params = new URLSearchParams({ view: 'sales', month });
+    if (tenantId) params.append('tenant_id', tenantId);
+
     const response = await api.get(`/leads?${params.toString()}`);
     return response.data;
   },
