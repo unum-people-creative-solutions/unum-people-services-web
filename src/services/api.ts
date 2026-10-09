@@ -93,7 +93,7 @@ export const LeadService = {
     const response = await api.put(url, { status, valor_venda: valor, data_venda: dataVenda });
     return response.data;
   },
-  update: async (id: string, data: { nome: string; email?: string; telefone: string; cpf?: string; data_nascimento?: string; origem?: string; sales?: any[]; status?: string; anotacoes?: string }, tenantId?: string) => {
+  update: async (id: string, data: { nome: string; email?: string; telefone: string; cpf?: string; data_nascimento?: string; origem?: string; anotacoes?: string }, tenantId?: string) => {
     let url = `/leads/${id}`;
     if (tenantId) {
       url += `?tenant_id=${tenantId}`;

@@ -524,6 +524,39 @@ describe('KanbanPage', () => {
   // responsabilidade pertence a TenantContext/Navbar desde o tenant-switcher
   // (7270de4); o Kanban apenas consome o contexto via useTenant().
 
+  describe('Edição do lead não envia status nem vendas (T09 — CA-07)', () => {
+    it('salvar a edição de um lead Perdido com 1 venda chama update sem as chaves status e sales', async () => {
+      const user = userEvent.setup();
+      const leadPerdido = {
+        id: 'lead-3',
+        nome: 'Carlos Lima',
+        telefone: '11955554444',
+        status: 'PERDIDO',
+        sales: [{ id: 'sale-9', valor: 500, data: '2026-09-10T00:00:00Z' }],
+      };
+      (LeadService.list as any).mockImplementation((status: string) =>
+        Promise.resolve(status === 'PERDIDO' ? [leadPerdido] : [])
+      );
+      (LeadService.update as any).mockResolvedValue({});
+
+      const { container } = render(<KanbanPage />);
+      await screen.findByText('Carlos Lima');
+
+      const editButton = container.querySelector('svg.lucide-pen')?.closest('button');
+      expect(editButton).not.toBeNull();
+      await user.click(editButton as HTMLElement);
+      await user.click(await screen.findByRole('button', { name: /salvar alterações/i }));
+
+      await waitFor(() => expect(LeadService.update).toHaveBeenCalledTimes(1));
+      const [id, payload, tenantId] = (LeadService.update as any).mock.calls[0];
+      expect(id).toBe('lead-3');
+      expect(tenantId).toBe('tenant-1');
+      expect(payload).toMatchObject({ nome: 'Carlos Lima' });
+      expect(payload).not.toHaveProperty('status');
+      expect(payload).not.toHaveProperty('sales');
+    });
+  });
+
   describe('Recarregamento de Leads ao Trocar Tenant (T06)', () => {
     it('T06 — Kanban: recarrega leads ao trocar tenant', async () => {
       const mockSwitchTenant = vi.fn();

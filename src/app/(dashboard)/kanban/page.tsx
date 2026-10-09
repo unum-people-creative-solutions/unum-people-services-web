@@ -410,11 +410,7 @@ function KanbanContent() {
   const handleUpdateLead = async (data: LeadFormValues) => {
     if (!editingLeadId) return;
     try {
-      await LeadService.update(editingLeadId, {
-        ...data,
-        sales: editingLeadSales,
-        status: editingLeadStatus
-      }, activeTenantId);
+      await LeadService.update(editingLeadId, data, activeTenantId);
       setIsEditModalOpen(false);
       setEditingLeadId(null);
       loadLeads(true);
